@@ -77,7 +77,7 @@ class RiskPredictionResponse(BaseModel):
     risk_level: str
     high_risk: bool
     interpretation: str
-    top_risk_factors: List[Dict[str, float]]
+    top_risk_factors: List[Dict[str, any]]
 
 # Helper functions
 def get_risk_level(probability: float) -> str:
