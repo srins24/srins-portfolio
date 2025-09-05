@@ -72,12 +72,18 @@ class RiskAssessment(BaseModel):
     feature_importance: Optional[Dict[str, float]] = None
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
+class RiskFactor(BaseModel):
+    factor: str
+    importance: float
+    value: Union[float, int, str]
+    contribution: float
+
 class RiskPredictionResponse(BaseModel):
     risk_probability: float
     risk_level: str
     high_risk: bool
     interpretation: str
-    top_risk_factors: List[Dict[str, any]]
+    top_risk_factors: List[RiskFactor]
 
 # Helper functions
 def get_risk_level(probability: float) -> str:
