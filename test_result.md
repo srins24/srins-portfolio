@@ -119,15 +119,18 @@ backend:
   
   - task: "Heart Disease Prediction API"
     implemented: true
-    working: false
+    working: true
     file: "server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: false
         agent: "main"
         comment: "API endpoints implemented (/api/predict, /api/model-performance, /api/feature-importance, /api/health-stats). Backend server running on port 8001. Need to test API endpoints."
+      - working: true
+        agent: "testing"
+        comment: "All backend API endpoints tested successfully. Fixed MongoDB ObjectId serialization issue in patient-history and recent-predictions endpoints. All 8 tests passed: health check, model performance, feature importance, health stats, recent predictions, prediction endpoint, error handling, and patient history. Database integration working correctly with predictions being saved and retrieved properly."
 
 frontend:
   - task: "Home Screen Dashboard"
