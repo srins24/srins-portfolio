@@ -1,0 +1,434 @@
+#!/usr/bin/env python3
+"""
+Comprehensive Backend API Testing for Heart Disease Risk Prediction API
+Tests all endpoints with proper error handling and validation
+"""
+
+import requests
+import json
+import sys
+from datetime import datetime
+import time
+
+# Get backend URL from frontend .env
+BACKEND_URL = "https://cardiorisk-predict.preview.emergentagent.com/api"
+
+# Test data for prediction endpoint
+SAMPLE_PATIENT_DATA = {
+    "age": 45,
+    "sex": "Male",
+    "cholesterol": 250,
+    "systolic_bp": 140,
+    "diastolic_bp": 90,
+    "heart_rate": 80,
+    "diabetes": 1,
+    "family_history": 1,
+    "smoking": 1,
+    "obesity": 0,
+    "alcohol_consumption": 1,
+    "exercise_hours_per_week": 2.5,
+    "diet": "Average",
+    "previous_heart_problems": 0,
+    "medication_use": 1,
+    "stress_level": 7,
+    "sedentary_hours_per_day": 8.0,
+    "income": 50000,
+    "bmi": 28.5,
+    "triglycerides": 200,
+    "physical_activity_days_per_week": 3,
+    "sleep_hours_per_day": 7
+}
+
+# Invalid test data for error handling
+INVALID_PATIENT_DATA = {
+    "age": 150,  # Invalid age
+    "sex": "Male",
+    "cholesterol": 50,  # Invalid cholesterol
+    "systolic_bp": 300,  # Invalid BP
+    "diastolic_bp": 200,  # Invalid BP
+    "heart_rate": 300,  # Invalid heart rate
+    "diabetes": 2,  # Invalid value
+    "family_history": 1,
+    "smoking": 1,
+    "obesity": 0,
+    "alcohol_consumption": 1,
+    "exercise_hours_per_week": 2.5,
+    "diet": "Average",
+    "previous_heart_problems": 0,
+    "medication_use": 1,
+    "stress_level": 7,
+    "sedentary_hours_per_day": 8.0,
+    "income": 50000,
+    "bmi": 28.5,
+    "triglycerides": 200,
+    "physical_activity_days_per_week": 3,
+    "sleep_hours_per_day": 7
+}
+
+class BackendTester:
+    def __init__(self):
+        self.results = []
+        self.patient_id = None
+        
+    def log_result(self, test_name, success, message, response_data=None):
+        """Log test results"""
+        result = {
+            "test": test_name,
+            "success": success,
+            "message": message,
+            "timestamp": datetime.now().isoformat(),
+            "response_data": response_data
+        }
+        self.results.append(result)
+        status = "✅ PASS" if success else "❌ FAIL"
+        print(f"{status} {test_name}: {message}")
+        
+    def test_health_check(self):
+        """Test basic health check endpoint"""
+        try:
+            response = requests.get(f"{BACKEND_URL}/", timeout=10)
+            if response.status_code == 200:
+                data = response.json()
+                if "message" in data and "status" in data:
+                    self.log_result("Health Check", True, f"API is active. Response: {data}")
+                    return True
+                else:
+                    self.log_result("Health Check", False, f"Invalid response format: {data}")
+                    return False
+            else:
+                self.log_result("Health Check", False, f"HTTP {response.status_code}: {response.text}")
+                return False
+        except Exception as e:
+            self.log_result("Health Check", False, f"Connection error: {str(e)}")
+            return False
+    
+    def test_prediction_endpoint(self):
+        """Test the main prediction endpoint with valid data"""
+        try:
+            response = requests.post(
+                f"{BACKEND_URL}/predict",
+                json=SAMPLE_PATIENT_DATA,
+                headers={"Content-Type": "application/json"},
+                timeout=30
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                required_fields = ["patient_id", "prediction", "risk_probability", "risk_level", "model_used", "timestamp", "recommendations"]
+                
+                missing_fields = [field for field in required_fields if field not in data]
+                if missing_fields:
+                    self.log_result("Prediction Endpoint", False, f"Missing fields: {missing_fields}")
+                    return False
+                
+                # Validate data types and ranges
+                if not isinstance(data["prediction"], int) or data["prediction"] not in [0, 1]:
+                    self.log_result("Prediction Endpoint", False, f"Invalid prediction value: {data['prediction']}")
+                    return False
+                
+                if not isinstance(data["risk_probability"], (int, float)) or not (0 <= data["risk_probability"] <= 1):
+                    self.log_result("Prediction Endpoint", False, f"Invalid risk probability: {data['risk_probability']}")
+                    return False
+                
+                if data["risk_level"] not in ["Low", "Medium", "High"]:
+                    self.log_result("Prediction Endpoint", False, f"Invalid risk level: {data['risk_level']}")
+                    return False
+                
+                if not isinstance(data["recommendations"], list) or len(data["recommendations"]) == 0:
+                    self.log_result("Prediction Endpoint", False, f"Invalid recommendations: {data['recommendations']}")
+                    return False
+                
+                # Store patient ID for later tests
+                self.patient_id = data["patient_id"]
+                
+                self.log_result("Prediction Endpoint", True, 
+                              f"Prediction successful. Risk: {data['risk_level']} ({data['risk_probability']:.3f}), Model: {data['model_used']}")
+                return True
+            else:
+                self.log_result("Prediction Endpoint", False, f"HTTP {response.status_code}: {response.text}")
+                return False
+                
+        except Exception as e:
+            self.log_result("Prediction Endpoint", False, f"Error: {str(e)}")
+            return False
+    
+    def test_prediction_error_handling(self):
+        """Test prediction endpoint with invalid data"""
+        try:
+            response = requests.post(
+                f"{BACKEND_URL}/predict",
+                json=INVALID_PATIENT_DATA,
+                headers={"Content-Type": "application/json"},
+                timeout=10
+            )
+            
+            if response.status_code == 422:  # Validation error expected
+                self.log_result("Prediction Error Handling", True, "Correctly rejected invalid input with 422 status")
+                return True
+            elif response.status_code == 400:  # Bad request also acceptable
+                self.log_result("Prediction Error Handling", True, "Correctly rejected invalid input with 400 status")
+                return True
+            else:
+                self.log_result("Prediction Error Handling", False, f"Unexpected status {response.status_code} for invalid data")
+                return False
+                
+        except Exception as e:
+            self.log_result("Prediction Error Handling", False, f"Error: {str(e)}")
+            return False
+    
+    def test_model_performance(self):
+        """Test model performance endpoint"""
+        try:
+            response = requests.get(f"{BACKEND_URL}/model-performance", timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                
+                if "best_model" not in data or "models" not in data:
+                    self.log_result("Model Performance", False, f"Missing required fields in response: {data}")
+                    return False
+                
+                if not isinstance(data["models"], list) or len(data["models"]) == 0:
+                    self.log_result("Model Performance", False, f"No model performance data found: {data}")
+                    return False
+                
+                # Check first model structure
+                model = data["models"][0]
+                required_metrics = ["model_name", "accuracy", "precision", "recall", "f1_score", "roc_auc"]
+                missing_metrics = [metric for metric in required_metrics if metric not in model]
+                
+                if missing_metrics:
+                    self.log_result("Model Performance", False, f"Missing metrics: {missing_metrics}")
+                    return False
+                
+                self.log_result("Model Performance", True, 
+                              f"Performance data retrieved. Best model: {data['best_model']}, Models count: {len(data['models'])}")
+                return True
+            else:
+                self.log_result("Model Performance", False, f"HTTP {response.status_code}: {response.text}")
+                return False
+                
+        except Exception as e:
+            self.log_result("Model Performance", False, f"Error: {str(e)}")
+            return False
+    
+    def test_feature_importance(self):
+        """Test feature importance endpoint"""
+        try:
+            response = requests.get(f"{BACKEND_URL}/feature-importance", timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                
+                if "model" not in data or "feature_importance" not in data:
+                    self.log_result("Feature Importance", False, f"Missing required fields: {data}")
+                    return False
+                
+                if not isinstance(data["feature_importance"], dict) or len(data["feature_importance"]) == 0:
+                    self.log_result("Feature Importance", False, f"No feature importance data: {data}")
+                    return False
+                
+                # Check if features are sorted by importance (descending)
+                importance_values = list(data["feature_importance"].values())
+                if importance_values != sorted(importance_values, reverse=True):
+                    self.log_result("Feature Importance", False, "Features not sorted by importance")
+                    return False
+                
+                self.log_result("Feature Importance", True, 
+                              f"Feature importance retrieved for model: {data['model']}, Features count: {len(data['feature_importance'])}")
+                return True
+            else:
+                self.log_result("Feature Importance", False, f"HTTP {response.status_code}: {response.text}")
+                return False
+                
+        except Exception as e:
+            self.log_result("Feature Importance", False, f"Error: {str(e)}")
+            return False
+    
+    def test_health_stats(self):
+        """Test health statistics endpoint"""
+        try:
+            response = requests.get(f"{BACKEND_URL}/health-stats", timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                
+                required_fields = ["total_predictions", "risk_distribution", "high_risk_percentage"]
+                missing_fields = [field for field in required_fields if field not in data]
+                
+                if missing_fields:
+                    self.log_result("Health Stats", False, f"Missing fields: {missing_fields}")
+                    return False
+                
+                if "high" not in data["risk_distribution"] or "medium" not in data["risk_distribution"] or "low" not in data["risk_distribution"]:
+                    self.log_result("Health Stats", False, f"Invalid risk distribution format: {data['risk_distribution']}")
+                    return False
+                
+                # Validate data types
+                if not isinstance(data["total_predictions"], int):
+                    self.log_result("Health Stats", False, f"Invalid total_predictions type: {type(data['total_predictions'])}")
+                    return False
+                
+                self.log_result("Health Stats", True, 
+                              f"Health stats retrieved. Total predictions: {data['total_predictions']}, High risk %: {data['high_risk_percentage']}")
+                return True
+            else:
+                self.log_result("Health Stats", False, f"HTTP {response.status_code}: {response.text}")
+                return False
+                
+        except Exception as e:
+            self.log_result("Health Stats", False, f"Error: {str(e)}")
+            return False
+    
+    def test_recent_predictions(self):
+        """Test recent predictions endpoint"""
+        try:
+            response = requests.get(f"{BACKEND_URL}/recent-predictions", timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                
+                if not isinstance(data, list):
+                    self.log_result("Recent Predictions", False, f"Expected list, got: {type(data)}")
+                    return False
+                
+                # If we have predictions, validate structure
+                if len(data) > 0:
+                    prediction = data[0]
+                    required_fields = ["patient_id", "patient_data", "prediction_result", "timestamp"]
+                    missing_fields = [field for field in required_fields if field not in prediction]
+                    
+                    if missing_fields:
+                        self.log_result("Recent Predictions", False, f"Missing fields in prediction: {missing_fields}")
+                        return False
+                
+                self.log_result("Recent Predictions", True, f"Recent predictions retrieved. Count: {len(data)}")
+                return True
+            else:
+                self.log_result("Recent Predictions", False, f"HTTP {response.status_code}: {response.text}")
+                return False
+                
+        except Exception as e:
+            self.log_result("Recent Predictions", False, f"Error: {str(e)}")
+            return False
+    
+    def test_patient_history(self):
+        """Test patient history endpoint if we have a patient ID"""
+        if not self.patient_id:
+            self.log_result("Patient History", False, "No patient ID available from previous tests")
+            return False
+            
+        try:
+            response = requests.get(f"{BACKEND_URL}/patient-history/{self.patient_id}", timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                
+                required_fields = ["patient_id", "patient_data", "prediction_result", "timestamp"]
+                missing_fields = [field for field in required_fields if field not in data]
+                
+                if missing_fields:
+                    self.log_result("Patient History", False, f"Missing fields: {missing_fields}")
+                    return False
+                
+                if data["patient_id"] != self.patient_id:
+                    self.log_result("Patient History", False, f"Patient ID mismatch: expected {self.patient_id}, got {data['patient_id']}")
+                    return False
+                
+                self.log_result("Patient History", True, f"Patient history retrieved for ID: {self.patient_id}")
+                return True
+            elif response.status_code == 404:
+                self.log_result("Patient History", False, f"Patient not found: {self.patient_id}")
+                return False
+            else:
+                self.log_result("Patient History", False, f"HTTP {response.status_code}: {response.text}")
+                return False
+                
+        except Exception as e:
+            self.log_result("Patient History", False, f"Error: {str(e)}")
+            return False
+    
+    def run_all_tests(self):
+        """Run all backend tests"""
+        print(f"🚀 Starting Backend API Tests for: {BACKEND_URL}")
+        print("=" * 60)
+        
+        # Test in logical order
+        tests = [
+            self.test_health_check,
+            self.test_model_performance,
+            self.test_feature_importance,
+            self.test_health_stats,
+            self.test_recent_predictions,
+            self.test_prediction_endpoint,
+            self.test_prediction_error_handling,
+            self.test_patient_history
+        ]
+        
+        passed = 0
+        total = len(tests)
+        
+        for test in tests:
+            try:
+                if test():
+                    passed += 1
+                time.sleep(0.5)  # Small delay between tests
+            except Exception as e:
+                print(f"❌ Test {test.__name__} crashed: {str(e)}")
+        
+        print("\n" + "=" * 60)
+        print(f"📊 Test Results: {passed}/{total} tests passed")
+        
+        if passed == total:
+            print("🎉 All tests passed! Backend API is working correctly.")
+            return True
+        else:
+            print(f"⚠️  {total - passed} tests failed. Check the issues above.")
+            return False
+    
+    def get_summary(self):
+        """Get test summary"""
+        passed = sum(1 for result in self.results if result["success"])
+        total = len(self.results)
+        
+        summary = {
+            "total_tests": total,
+            "passed": passed,
+            "failed": total - passed,
+            "success_rate": round((passed / total * 100) if total > 0 else 0, 2),
+            "results": self.results
+        }
+        
+        return summary
+
+def main():
+    """Main test execution"""
+    tester = BackendTester()
+    
+    print("Heart Disease Risk Prediction API - Backend Testing")
+    print(f"Testing URL: {BACKEND_URL}")
+    print(f"Test started at: {datetime.now().isoformat()}")
+    print()
+    
+    success = tester.run_all_tests()
+    
+    # Print detailed summary
+    summary = tester.get_summary()
+    print(f"\n📋 Detailed Summary:")
+    print(f"   Success Rate: {summary['success_rate']}%")
+    print(f"   Total Tests: {summary['total_tests']}")
+    print(f"   Passed: {summary['passed']}")
+    print(f"   Failed: {summary['failed']}")
+    
+    # Print failed tests details
+    failed_tests = [r for r in summary['results'] if not r['success']]
+    if failed_tests:
+        print(f"\n❌ Failed Tests Details:")
+        for test in failed_tests:
+            print(f"   - {test['test']}: {test['message']}")
+    
+    return success
+
+if __name__ == "__main__":
+    success = main()
+    sys.exit(0 if success else 1)
