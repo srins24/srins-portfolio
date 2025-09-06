@@ -198,12 +198,17 @@ async def get_patient_history(patient_id: str):
     history = await db.patient_history.find_one({"patient_id": patient_id})
     if not history:
         raise HTTPException(status_code=404, detail="Patient not found")
+    # Convert ObjectId to string for JSON serialization
+    history["_id"] = str(history["_id"])
     return history
 
 @api_router.get("/recent-predictions")
 async def get_recent_predictions(limit: int = 10):
     """Get recent predictions"""
     predictions = await db.patient_history.find().sort("timestamp", -1).limit(limit).to_list(limit)
+    # Convert ObjectId to string for JSON serialization
+    for prediction in predictions:
+        prediction["_id"] = str(prediction["_id"])
     return predictions
 
 @api_router.get("/model-performance")
