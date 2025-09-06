@@ -56,7 +56,7 @@ class HeartDiseasePredictor:
         return X, y
     
     def train_models(self, X: pd.DataFrame, y: pd.Series):
-        """Train multiple ML models with hyperparameter tuning"""
+        """Train multiple ML models with simplified hyperparameter tuning"""
         logger.info("Starting model training...")
         
         # Split data
@@ -66,43 +66,19 @@ class HeartDiseasePredictor:
         X_train_scaled = self.scaler.fit_transform(X_train)
         X_test_scaled = self.scaler.transform(X_test)
         
-        # Handle class imbalance
-        class_weights = compute_class_weight('balanced', classes=np.unique(y_train), y=y_train)
-        class_weight_dict = dict(zip(np.unique(y_train), class_weights))
-        
-        # Define models with hyperparameter grids
+        # Define simplified models (faster training)
         model_configs = {
             'logistic_regression': {
-                'model': LogisticRegression(class_weight='balanced', random_state=42),
-                'params': {
-                    'C': [0.1, 1, 10, 100],
-                    'penalty': ['l1', 'l2'],
-                    'solver': ['liblinear']
-                }
+                'model': LogisticRegression(class_weight='balanced', random_state=42, max_iter=1000),
+                'use_scaled': False
             },
             'random_forest': {
-                'model': RandomForestClassifier(class_weight='balanced', random_state=42),
-                'params': {
-                    'n_estimators': [100, 200, 300],
-                    'max_depth': [10, 20, None],
-                    'min_samples_split': [2, 5, 10]
-                }
+                'model': RandomForestClassifier(n_estimators=100, class_weight='balanced', random_state=42, max_depth=10),
+                'use_scaled': False
             },
             'gradient_boosting': {
-                'model': GradientBoostingClassifier(random_state=42),
-                'params': {
-                    'n_estimators': [100, 200],
-                    'learning_rate': [0.05, 0.1, 0.2],
-                    'max_depth': [3, 5, 7]
-                }
-            },
-            'neural_network': {
-                'model': MLPClassifier(random_state=42, max_iter=1000),
-                'params': {
-                    'hidden_layer_sizes': [(50,), (100,), (50, 25)],
-                    'alpha': [0.001, 0.01, 0.1],
-                    'learning_rate': ['constant', 'adaptive']
-                }
+                'model': GradientBoostingClassifier(n_estimators=100, learning_rate=0.1, max_depth=5, random_state=42),
+                'use_scaled': False
             }
         }
         
@@ -111,23 +87,21 @@ class HeartDiseasePredictor:
         for name, config in model_configs.items():
             logger.info(f"Training {name}...")
             
-            # Grid search with cross-validation
-            grid_search = GridSearchCV(
-                config['model'], 
-                config['params'], 
-                cv=5, 
-                scoring='roc_auc',
-                n_jobs=-1
-            )
-            
-            if name == 'neural_network':
-                grid_search.fit(X_train_scaled, y_train)
-                y_pred = grid_search.predict(X_test_scaled)
-                y_pred_proba = grid_search.predict_proba(X_test_scaled)[:, 1]
+            # Choose data based on model requirements
+            if config['use_scaled']:
+                X_train_data = X_train_scaled
+                X_test_data = X_test_scaled
             else:
-                grid_search.fit(X_train, y_train)
-                y_pred = grid_search.predict(X_test)
-                y_pred_proba = grid_search.predict_proba(X_test)[:, 1]
+                X_train_data = X_train
+                X_test_data = X_test
+            
+            # Train model
+            model = config['model']
+            model.fit(X_train_data, y_train)
+            
+            # Make predictions
+            y_pred = model.predict(X_test_data)
+            y_pred_proba = model.predict_proba(X_test_data)[:, 1]
             
             # Calculate metrics
             metrics = {
@@ -136,24 +110,24 @@ class HeartDiseasePredictor:
                 'recall': recall_score(y_test, y_pred),
                 'f1_score': f1_score(y_test, y_pred),
                 'roc_auc': roc_auc_score(y_test, y_pred_proba),
-                'best_params': grid_search.best_params_
+                'best_params': 'default'
             }
             
-            self.models[name] = grid_search.best_estimator_
+            self.models[name] = model
             self.model_performance[name] = metrics
             
             # Track best model based on ROC-AUC
             if metrics['roc_auc'] > best_score:
                 best_score = metrics['roc_auc']
                 self.best_model_name = name
-                self.best_model = grid_search.best_estimator_
+                self.best_model = model
             
             # Extract feature importance
-            if hasattr(grid_search.best_estimator_, 'feature_importances_'):
-                importance = grid_search.best_estimator_.feature_importances_
+            if hasattr(model, 'feature_importances_'):
+                importance = model.feature_importances_
                 self.feature_importance[name] = dict(zip(self.feature_columns, importance))
-            elif hasattr(grid_search.best_estimator_, 'coef_'):
-                importance = np.abs(grid_search.best_estimator_.coef_[0])
+            elif hasattr(model, 'coef_'):
+                importance = np.abs(model.coef_[0])
                 self.feature_importance[name] = dict(zip(self.feature_columns, importance))
             
             logger.info(f"{name} - ROC-AUC: {metrics['roc_auc']:.4f}, Accuracy: {metrics['accuracy']:.4f}")
