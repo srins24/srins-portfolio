@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter
+from fastapi import FastAPI, APIRouter, HTTPException
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -6,10 +6,11 @@ import os
 import logging
 from pathlib import Path
 from pydantic import BaseModel, Field
-from typing import List
+from typing import List, Dict, Any, Optional
 import uuid
 from datetime import datetime
-
+from ml_pipeline import HeartDiseasePredictor
+import joblib
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -20,37 +21,237 @@ client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
 # Create the main app without a prefix
-app = FastAPI()
+app = FastAPI(title="Heart Disease Risk Prediction API")
 
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
 
+# Initialize ML predictor
+predictor = HeartDiseasePredictor()
 
-# Define Models
-class StatusCheck(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    client_name: str
+# Load trained models if they exist
+try:
+    predictor.load_models('/app/backend/models')
+    logging.info("Pre-trained models loaded successfully")
+except:
+    logging.warning("No pre-trained models found. Training new models...")
+    # Import and run training
+    from ml_pipeline import train_and_save_models
+    predictor = train_and_save_models()
+
+# Pydantic models
+class PatientInput(BaseModel):
+    age: int = Field(..., ge=1, le=120, description="Patient age")
+    sex: str = Field(..., description="Patient sex (Male/Female)")
+    cholesterol: int = Field(..., ge=100, le=600, description="Cholesterol level")
+    systolic_bp: int = Field(..., ge=80, le=250, description="Systolic blood pressure")
+    diastolic_bp: int = Field(..., ge=40, le=150, description="Diastolic blood pressure")
+    heart_rate: int = Field(..., ge=40, le=200, description="Heart rate")
+    diabetes: int = Field(..., ge=0, le=1, description="Diabetes (0=No, 1=Yes)")
+    family_history: int = Field(..., ge=0, le=1, description="Family history (0=No, 1=Yes)")
+    smoking: int = Field(..., ge=0, le=1, description="Smoking (0=No, 1=Yes)")
+    obesity: int = Field(..., ge=0, le=1, description="Obesity (0=No, 1=Yes)")
+    alcohol_consumption: int = Field(..., ge=0, le=1, description="Alcohol consumption (0=No, 1=Yes)")
+    exercise_hours_per_week: float = Field(..., ge=0, le=50, description="Exercise hours per week")
+    diet: str = Field(..., description="Diet type (Healthy/Average/Unhealthy)")
+    previous_heart_problems: int = Field(..., ge=0, le=1, description="Previous heart problems (0=No, 1=Yes)")
+    medication_use: int = Field(..., ge=0, le=1, description="Medication use (0=No, 1=Yes)")
+    stress_level: int = Field(..., ge=1, le=10, description="Stress level (1-10)")
+    sedentary_hours_per_day: float = Field(..., ge=0, le=24, description="Sedentary hours per day")
+    income: int = Field(..., ge=0, description="Income")
+    bmi: float = Field(..., ge=10, le=60, description="BMI")
+    triglycerides: int = Field(..., ge=50, le=1000, description="Triglycerides level")
+    physical_activity_days_per_week: int = Field(..., ge=0, le=7, description="Physical activity days per week")
+    sleep_hours_per_day: int = Field(..., ge=1, le=24, description="Sleep hours per day")
+
+class PredictionResult(BaseModel):
+    patient_id: str
+    prediction: int
+    risk_probability: float
+    risk_level: str
+    model_used: str
+    timestamp: datetime
+    recommendations: List[str]
+
+class PatientHistory(BaseModel):
+    patient_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    patient_data: PatientInput
+    prediction_result: PredictionResult
     timestamp: datetime = Field(default_factory=datetime.utcnow)
 
-class StatusCheckCreate(BaseModel):
-    client_name: str
+class ModelPerformance(BaseModel):
+    model_name: str
+    accuracy: float
+    precision: float
+    recall: float
+    f1_score: float
+    roc_auc: float
 
-# Add your routes to the router instead of directly to app
+def generate_recommendations(patient_data: PatientInput, risk_level: str) -> List[str]:
+    """Generate personalized health recommendations"""
+    recommendations = []
+    
+    if risk_level == "High":
+        recommendations.append("🚨 Consult with a cardiologist immediately")
+        recommendations.append("📊 Schedule comprehensive cardiac testing")
+    
+    if patient_data.smoking == 1:
+        recommendations.append("🚭 Quit smoking - this is the most important step you can take")
+    
+    if patient_data.bmi > 30:
+        recommendations.append("⚖️ Focus on weight management through diet and exercise")
+    
+    if patient_data.exercise_hours_per_week < 2.5:
+        recommendations.append("🏃‍♂️ Increase physical activity to at least 150 minutes per week")
+    
+    if patient_data.stress_level > 7:
+        recommendations.append("🧘‍♀️ Practice stress management techniques like meditation or yoga")
+    
+    if patient_data.diet == "Unhealthy":
+        recommendations.append("🥗 Adopt a heart-healthy diet rich in fruits, vegetables, and whole grains")
+    
+    if patient_data.sleep_hours_per_day < 7:
+        recommendations.append("😴 Aim for 7-9 hours of quality sleep per night")
+    
+    if patient_data.cholesterol > 240:
+        recommendations.append("💊 Monitor and manage cholesterol levels with your doctor")
+    
+    if patient_data.systolic_bp > 140 or patient_data.diastolic_bp > 90:
+        recommendations.append("🩺 Monitor and control blood pressure regularly")
+    
+    # Add general recommendations
+    recommendations.append("📅 Schedule regular check-ups with your healthcare provider")
+    recommendations.append("📱 Track your heart health metrics regularly")
+    
+    return recommendations[:6]  # Limit to 6 recommendations
+
+# API Routes
 @api_router.get("/")
 async def root():
-    return {"message": "Hello World"}
+    return {"message": "Heart Disease Risk Prediction API", "status": "active"}
 
-@api_router.post("/status", response_model=StatusCheck)
-async def create_status_check(input: StatusCheckCreate):
-    status_dict = input.dict()
-    status_obj = StatusCheck(**status_dict)
-    _ = await db.status_checks.insert_one(status_obj.dict())
-    return status_obj
+@api_router.post("/predict", response_model=PredictionResult)
+async def predict_heart_disease_risk(patient_data: PatientInput):
+    """Predict heart disease risk for a patient"""
+    try:
+        # Convert input to dictionary format expected by ML model
+        features = {
+            'Age': patient_data.age,
+            'Sex': patient_data.sex,
+            'Cholesterol': patient_data.cholesterol,
+            'Systolic_BP': patient_data.systolic_bp,
+            'Diastolic_BP': patient_data.diastolic_bp,
+            'Heart Rate': patient_data.heart_rate,
+            'Diabetes': patient_data.diabetes,
+            'Family History': patient_data.family_history,
+            'Smoking': patient_data.smoking,
+            'Obesity': patient_data.obesity,
+            'Alcohol Consumption': patient_data.alcohol_consumption,
+            'Exercise Hours Per Week': patient_data.exercise_hours_per_week,
+            'Diet': patient_data.diet,
+            'Previous Heart Problems': patient_data.previous_heart_problems,
+            'Medication Use': patient_data.medication_use,
+            'Stress Level': patient_data.stress_level,
+            'Sedentary Hours Per Day': patient_data.sedentary_hours_per_day,
+            'Income': patient_data.income,
+            'BMI': patient_data.bmi,
+            'Triglycerides': patient_data.triglycerides,
+            'Physical Activity Days Per Week': patient_data.physical_activity_days_per_week,
+            'Sleep Hours Per Day': patient_data.sleep_hours_per_day
+        }
+        
+        # Make prediction
+        result = predictor.predict(features)
+        
+        # Generate recommendations
+        recommendations = generate_recommendations(patient_data, result['risk_level'])
+        
+        patient_id = str(uuid.uuid4())
+        prediction_result = PredictionResult(
+            patient_id=patient_id,
+            prediction=result['prediction'],
+            risk_probability=result['risk_probability'],
+            risk_level=result['risk_level'],
+            model_used=result['model_used'],
+            timestamp=datetime.utcnow(),
+            recommendations=recommendations
+        )
+        
+        # Save to database
+        patient_history = PatientHistory(
+            patient_id=patient_id,
+            patient_data=patient_data,
+            prediction_result=prediction_result
+        )
+        
+        await db.patient_history.insert_one(patient_history.dict())
+        
+        return prediction_result
+        
+    except Exception as e:
+        logging.error(f"Prediction error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")
 
-@api_router.get("/status", response_model=List[StatusCheck])
-async def get_status_checks():
-    status_checks = await db.status_checks.find().to_list(1000)
-    return [StatusCheck(**status_check) for status_check in status_checks]
+@api_router.get("/patient-history/{patient_id}")
+async def get_patient_history(patient_id: str):
+    """Get patient history by ID"""
+    history = await db.patient_history.find_one({"patient_id": patient_id})
+    if not history:
+        raise HTTPException(status_code=404, detail="Patient not found")
+    return history
+
+@api_router.get("/recent-predictions")
+async def get_recent_predictions(limit: int = 10):
+    """Get recent predictions"""
+    predictions = await db.patient_history.find().sort("timestamp", -1).limit(limit).to_list(limit)
+    return predictions
+
+@api_router.get("/model-performance")
+async def get_model_performance():
+    """Get model performance metrics"""
+    performance_data = []
+    for model_name, metrics in predictor.model_performance.items():
+        performance_data.append(ModelPerformance(
+            model_name=model_name,
+            accuracy=metrics['accuracy'],
+            precision=metrics['precision'],
+            recall=metrics['recall'],
+            f1_score=metrics['f1_score'],
+            roc_auc=metrics['roc_auc']
+        ))
+    return {
+        "best_model": predictor.best_model_name,
+        "models": performance_data
+    }
+
+@api_router.get("/feature-importance")
+async def get_feature_importance(model_name: Optional[str] = None):
+    """Get feature importance for model interpretability"""
+    importance = predictor.get_feature_importance(model_name)
+    # Sort by importance
+    sorted_importance = dict(sorted(importance.items(), key=lambda x: x[1], reverse=True))
+    return {
+        "model": model_name or predictor.best_model_name,
+        "feature_importance": sorted_importance
+    }
+
+@api_router.get("/health-stats")
+async def get_health_stats():
+    """Get aggregate health statistics"""
+    total_predictions = await db.patient_history.count_documents({})
+    high_risk_count = await db.patient_history.count_documents({"prediction_result.risk_level": "High"})
+    medium_risk_count = await db.patient_history.count_documents({"prediction_result.risk_level": "Medium"})
+    low_risk_count = await db.patient_history.count_documents({"prediction_result.risk_level": "Low"})
+    
+    return {
+        "total_predictions": total_predictions,
+        "risk_distribution": {
+            "high": high_risk_count,
+            "medium": medium_risk_count,
+            "low": low_risk_count
+        },
+        "high_risk_percentage": round((high_risk_count / total_predictions * 100) if total_predictions > 0 else 0, 2)
+    }
 
 # Include the router in the main app
 app.include_router(api_router)
