@@ -10,10 +10,12 @@ import {
   SafeAreaView
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { useRouter } from 'expo-router';
 
 const EXPO_PUBLIC_BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
 export default function Index() {
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [healthStats, setHealthStats] = useState(null);
 
@@ -32,20 +34,11 @@ export default function Index() {
   };
 
   const navigateToAssessment = () => {
-    // For now, show an alert - we'll implement navigation later
-    Alert.alert(
-      "Risk Assessment",
-      "Risk assessment form will be implemented in the next phase.",
-      [{ text: "OK" }]
-    );
+    router.push('/assessment');
   };
 
   const navigateToHistory = () => {
-    Alert.alert(
-      "Patient History",
-      "Patient history dashboard will be implemented in the next phase.",
-      [{ text: "OK" }]
-    );
+    router.push('/history');
   };
 
   const navigateToInsights = () => {
