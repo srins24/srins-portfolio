@@ -201,3 +201,5 @@ agent_communication:
     message: "Initial implementation complete. ML models trained successfully. Backend API and frontend dashboard created. Ready for testing - please test all API endpoints and frontend functionality."
   - agent: "testing"
     message: "Backend API testing completed successfully. All 8 endpoints tested and working: health check, prediction, model performance, feature importance, health stats, recent predictions, patient history, and error handling. Fixed MongoDB ObjectId serialization issue. Database integration working correctly. Backend is fully functional and ready for production use."
+  - agent: "testing"
+    message: "Starting comprehensive mobile app testing. Complete Heart Disease Risk Prediction app implemented with: Home Dashboard (✓ working), Risk Assessment Form (5 steps), Results Page, and History Page. Will test all user journeys, mobile responsiveness, API integrations, and form validation on mobile viewport (390x844). Backend APIs confirmed working."
