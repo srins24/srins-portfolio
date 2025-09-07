@@ -189,7 +189,9 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Home Screen Dashboard"
+    - "Risk Assessment Form"
+    - "Results Page"
+    - "History Page"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
