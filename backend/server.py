@@ -258,6 +258,179 @@ async def get_health_stats():
         "high_risk_percentage": round((high_risk_count / total_predictions * 100) if total_predictions > 0 else 0, 2)
     }
 
+@api_router.post("/predict-realtime")
+async def predict_realtime(patient_data: PatientInput):
+    """Real-time prediction as user fills the form"""
+    try:
+        # Convert input to dictionary format expected by ML model
+        features = {
+            'Age': patient_data.age,
+            'Sex': patient_data.sex,
+            'Cholesterol': patient_data.cholesterol,
+            'Systolic_BP': patient_data.systolic_bp,
+            'Diastolic_BP': patient_data.diastolic_bp,
+            'Heart Rate': patient_data.heart_rate,
+            'Diabetes': patient_data.diabetes,
+            'Family History': patient_data.family_history,
+            'Smoking': patient_data.smoking,
+            'Obesity': patient_data.obesity,
+            'Alcohol Consumption': patient_data.alcohol_consumption,
+            'Exercise Hours Per Week': patient_data.exercise_hours_per_week,
+            'Diet': patient_data.diet,
+            'Previous Heart Problems': patient_data.previous_heart_problems,
+            'Medication Use': patient_data.medication_use,
+            'Stress Level': patient_data.stress_level,
+            'Sedentary Hours Per Day': patient_data.sedentary_hours_per_day,
+            'Income': patient_data.income,
+            'BMI': patient_data.bmi,
+            'Triglycerides': patient_data.triglycerides,
+            'Physical Activity Days Per Week': patient_data.physical_activity_days_per_week,
+            'Sleep Hours Per Day': patient_data.sleep_hours_per_day
+        }
+        
+        # Make prediction
+        result = predictor.predict(features)
+        
+        # Return just the cardiovascular risks for real-time display
+        return {
+            "cardiovascular_risks": result.get('cardiovascular_risks', {}),
+            "risk_factors_analysis": result.get('risk_factors_analysis', {}),
+            "lifestyle_impact": result.get('lifestyle_impact', {})
+        }
+        
+    except Exception as e:
+        logging.error(f"Real-time prediction error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Real-time prediction failed: {str(e)}")
+
+@api_router.post("/analyze-lifestyle-impact")
+async def analyze_lifestyle_impact(patient_data: PatientInput):
+    """Analyze potential impact of lifestyle changes"""
+    try:
+        features = {
+            'Age': patient_data.age,
+            'Sex': patient_data.sex,
+            'Cholesterol': patient_data.cholesterol,
+            'Systolic_BP': patient_data.systolic_bp,
+            'Diastolic_BP': patient_data.diastolic_bp,
+            'Heart Rate': patient_data.heart_rate,
+            'Diabetes': patient_data.diabetes,
+            'Family History': patient_data.family_history,
+            'Smoking': patient_data.smoking,
+            'Obesity': patient_data.obesity,
+            'Alcohol Consumption': patient_data.alcohol_consumption,
+            'Exercise Hours Per Week': patient_data.exercise_hours_per_week,
+            'Diet': patient_data.diet,
+            'Previous Heart Problems': patient_data.previous_heart_problems,
+            'Medication Use': patient_data.medication_use,
+            'Stress Level': patient_data.stress_level,
+            'Sedentary Hours Per Day': patient_data.sedentary_hours_per_day,
+            'Income': patient_data.income,
+            'BMI': patient_data.bmi,
+            'Triglycerides': patient_data.triglycerides,
+            'Physical Activity Days Per Week': patient_data.physical_activity_days_per_week,
+            'Sleep Hours Per Day': patient_data.sleep_hours_per_day
+        }
+        
+        # Get baseline prediction
+        baseline_result = predictor.predict(features)
+        
+        # Calculate various lifestyle modification scenarios
+        scenarios = {}
+        
+        # Scenario 1: Quit smoking
+        if features['Smoking'] == 1:
+            modified_features = features.copy()
+            modified_features['Smoking'] = 0
+            quit_smoking_result = predictor.predict(modified_features)
+            scenarios['quit_smoking'] = {
+                'description': 'Quit smoking',
+                'risk_reduction': max(0, baseline_result['risk_probability'] - quit_smoking_result['risk_probability']),
+                'new_risk_level': quit_smoking_result['risk_level'],
+                'cardiovascular_improvement': {
+                    risk_type: {
+                        'reduction': max(0, baseline_result['cardiovascular_risks'][risk_type]['probability'] - 
+                                   quit_smoking_result['cardiovascular_risks'][risk_type]['probability'])
+                    }
+                    for risk_type in baseline_result['cardiovascular_risks']
+                }
+            }
+        
+        # Scenario 2: Weight loss (10% BMI reduction)
+        if features['BMI'] > 25:
+            modified_features = features.copy()
+            modified_features['BMI'] = features['BMI'] * 0.9
+            weight_loss_result = predictor.predict(modified_features)
+            scenarios['weight_loss'] = {
+                'description': 'Lose 10% body weight',
+                'risk_reduction': max(0, baseline_result['risk_probability'] - weight_loss_result['risk_probability']),
+                'new_risk_level': weight_loss_result['risk_level'],
+                'cardiovascular_improvement': {
+                    risk_type: {
+                        'reduction': max(0, baseline_result['cardiovascular_risks'][risk_type]['probability'] - 
+                                   weight_loss_result['cardiovascular_risks'][risk_type]['probability'])
+                    }
+                    for risk_type in baseline_result['cardiovascular_risks']
+                }
+            }
+        
+        # Scenario 3: Increase exercise
+        if features['Exercise Hours Per Week'] < 5:
+            modified_features = features.copy()
+            modified_features['Exercise Hours Per Week'] = min(5, features['Exercise Hours Per Week'] + 2.5)
+            exercise_result = predictor.predict(modified_features)
+            scenarios['increase_exercise'] = {
+                'description': 'Add 2.5 hours of exercise per week',
+                'risk_reduction': max(0, baseline_result['risk_probability'] - exercise_result['risk_probability']),
+                'new_risk_level': exercise_result['risk_level'],
+                'cardiovascular_improvement': {
+                    risk_type: {
+                        'reduction': max(0, baseline_result['cardiovascular_risks'][risk_type]['probability'] - 
+                                   exercise_result['cardiovascular_risks'][risk_type]['probability'])
+                    }
+                    for risk_type in baseline_result['cardiovascular_risks']
+                }
+            }
+        
+        # Scenario 4: Improve diet
+        if features['Diet'] == 'Unhealthy':
+            modified_features = features.copy()
+            modified_features['Diet'] = 'Healthy'
+            diet_result = predictor.predict(modified_features)
+            scenarios['improve_diet'] = {
+                'description': 'Switch to healthy diet',
+                'risk_reduction': max(0, baseline_result['risk_probability'] - diet_result['risk_probability']),
+                'new_risk_level': diet_result['risk_level'],
+                'cardiovascular_improvement': {
+                    risk_type: {
+                        'reduction': max(0, baseline_result['cardiovascular_risks'][risk_type]['probability'] - 
+                                   diet_result['cardiovascular_risks'][risk_type]['probability'])
+                    }
+                    for risk_type in baseline_result['cardiovascular_risks']
+                }
+            }
+        
+        return {
+            'baseline_risk': baseline_result['cardiovascular_risks'],
+            'lifestyle_scenarios': scenarios,
+            'recommendations_priority': _get_priority_recommendations(scenarios)
+        }
+        
+    except Exception as e:
+        logging.error(f"Lifestyle impact analysis error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Lifestyle analysis failed: {str(e)}")
+
+def _get_priority_recommendations(scenarios):
+    """Get prioritized recommendations based on impact"""
+    priorities = []
+    for scenario_name, scenario_data in scenarios.items():
+        priorities.append({
+            'action': scenario_data['description'],
+            'impact_score': scenario_data['risk_reduction'],
+            'priority': 'High' if scenario_data['risk_reduction'] > 0.1 else 'Medium' if scenario_data['risk_reduction'] > 0.05 else 'Low'
+        })
+    
+    return sorted(priorities, key=lambda x: x['impact_score'], reverse=True)
+
 # Include the router in the main app
 app.include_router(api_router)
 
