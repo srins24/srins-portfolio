@@ -282,6 +282,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#2a1a2a',
     borderColor: '#9C27B0',
   },
+  aiCard: {
+    backgroundColor: '#1a2a1a',
+    borderColor: '#4CAF50',
+  },
   cardIcon: {
     fontSize: 48,
     marginBottom: 16,
