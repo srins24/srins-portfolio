@@ -626,11 +626,12 @@ class BackendTester:
             return False
     
     def run_all_tests(self):
-        """Run all backend tests"""
-        print(f"🚀 Starting Backend API Tests for: {BACKEND_URL}")
-        print("=" * 60)
+        """Run all backend tests including advanced cardiovascular risk features"""
+        print(f"🚀 Starting Enhanced Cardiovascular Risk Prediction Backend Tests")
+        print(f"Testing URL: {BACKEND_URL}")
+        print("=" * 80)
         
-        # Test in logical order
+        # Test in logical order - basic tests first, then advanced features
         tests = [
             self.test_health_check,
             self.test_model_performance,
@@ -638,6 +639,11 @@ class BackendTester:
             self.test_health_stats,
             self.test_recent_predictions,
             self.test_prediction_endpoint,
+            self.test_enhanced_prediction_endpoint,
+            self.test_risk_factors_analysis,
+            self.test_lifestyle_impact_in_prediction,
+            self.test_realtime_prediction_endpoint,
+            self.test_lifestyle_impact_analysis_endpoint,
             self.test_prediction_error_handling,
             self.test_patient_history
         ]
