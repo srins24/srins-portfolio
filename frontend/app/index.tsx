@@ -125,16 +125,16 @@ export default function Index() {
 
           <TouchableOpacity 
             style={[styles.actionCard, styles.tertiaryCard]} 
-            onPress={navigateToInsights}
+            onPress={() => router.push('/risk-monitor')}
             activeOpacity={0.8}
           >
-            <Text style={styles.cardIcon}>🧠</Text>
-            <Text style={styles.cardTitle}>Model Insights</Text>
+            <Text style={styles.cardIcon}>📊</Text>
+            <Text style={styles.cardTitle}>Risk Monitor</Text>
             <Text style={styles.cardDescription}>
-              Understand how AI predictions work and model performance
+              Real-time cardiovascular risk monitoring and live updates
             </Text>
             <View style={styles.cardButton}>
-              <Text style={styles.buttonText}>View Insights</Text>
+              <Text style={styles.buttonText}>Monitor Risks</Text>
             </View>
           </TouchableOpacity>
         </View>
