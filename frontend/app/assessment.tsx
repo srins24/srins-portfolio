@@ -306,14 +306,27 @@ export default function Assessment() {
     return (
       <View key={field} style={styles.fieldContainer}>
         <Text style={styles.fieldLabel}>{fieldConfig.label}</Text>
-        <TextInput
-          style={styles.textInput}
-          value={patientData[field]}
-          onChangeText={(value) => updateField(field, value)}
-          placeholder={fieldConfig.placeholder}
-          placeholderTextColor="#666666"
-          keyboardType={fieldConfig.keyboardType}
-        />
+        <View style={styles.inputContainer}>
+          <TextInput
+            style={[styles.textInput, voiceEnabled && styles.textInputWithVoice]}
+            value={patientData[field]}
+            onChangeText={(value) => updateField(field, value)}
+            placeholder={fieldConfig.placeholder}
+            placeholderTextColor="#666666"
+            keyboardType={fieldConfig.keyboardType}
+          />
+          {voiceEnabled && (
+            <TouchableOpacity 
+              style={[styles.voiceButton, isListening && currentField === field && styles.voiceButtonActive]}
+              onPress={() => startVoiceInput(field)}
+              disabled={isListening}
+            >
+              <Text style={styles.voiceButtonText}>
+                {isListening && currentField === field ? '🔴' : '🎤'}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
         {fieldConfig.unit && (
           <Text style={styles.unitLabel}>{fieldConfig.unit}</Text>
         )}
