@@ -16,7 +16,7 @@ from pathlib import Path
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-class HeartDiseasePredictor:
+class CardiovascularRiskPredictor:
     def __init__(self):
         self.models = {}
         self.scaler = StandardScaler()
@@ -26,6 +26,20 @@ class HeartDiseasePredictor:
         self.model_performance = {}
         self.best_model_name = None
         self.best_model = None
+        
+        # Advanced cardiovascular risk models
+        self.risk_models = {
+            'heart_attack': None,
+            'stroke': None,
+            'heart_failure': None,
+            'arrhythmia': None
+        }
+        self.risk_coefficients = {
+            'heart_attack': 1.0,
+            'stroke': 0.8,
+            'heart_failure': 0.7,
+            'arrhythmia': 0.6
+        }
         
     def load_and_preprocess_data(self, csv_path: str) -> Tuple[pd.DataFrame, pd.Series]:
         """Load and preprocess the heart disease dataset"""
