@@ -820,4 +820,27 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontStyle: 'italic',
   },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  textInputWithVoice: {
+    flex: 1,
+    marginRight: 8,
+  },
+  voiceButton: {
+    backgroundColor: '#2196F3',
+    borderRadius: 8,
+    padding: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 44,
+    height: 44,
+  },
+  voiceButtonActive: {
+    backgroundColor: '#F44336',
+  },
+  voiceButtonText: {
+    fontSize: 16,
+  },
 });
