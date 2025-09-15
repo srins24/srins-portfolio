@@ -273,9 +273,9 @@ export default function AdvancedResults() {
 
           <TouchableOpacity 
             style={[styles.actionButton, styles.secondaryActionButton]}
-            onPress={() => router.push('/history')}
+            onPress={() => router.push('/risk-monitor')}
           >
-            <Text style={styles.secondaryActionText}>📊 Track Progress</Text>
+            <Text style={styles.secondaryActionText}>📊 Live Monitor</Text>
           </TouchableOpacity>
         </View>
 
