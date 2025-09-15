@@ -104,10 +104,67 @@ export default function Assessment() {
   ];
 
   const updateField = (field: keyof PatientData, value: string) => {
-    setPatientData(prev => ({
-      ...prev,
+    const newData = {
+      ...patientData,
       [field]: value
-    }));
+    };
+    setPatientData(newData);
+    
+    // Trigger real-time risk calculation if we have enough data
+    if (currentStep >= 2) { // Start showing after health metrics step
+      calculateRealTimeRisk(newData);
+    }
+  };
+
+  const calculateRealTimeRisk = async (data: PatientData) => {
+    // Only calculate if we have essential fields filled
+    if (!data.age || !data.cholesterol || !data.systolic_bp || !data.diastolic_bp) {
+      return;
+    }
+
+    try {
+      // Use default values for missing fields
+      const payload = {
+        age: parseInt(data.age) || 45,
+        sex: data.sex,
+        cholesterol: parseInt(data.cholesterol) || 200,
+        systolic_bp: parseInt(data.systolic_bp) || 120,
+        diastolic_bp: parseInt(data.diastolic_bp) || 80,
+        heart_rate: parseInt(data.heart_rate) || 70,
+        diabetes: parseInt(data.diabetes),
+        family_history: parseInt(data.family_history),
+        smoking: parseInt(data.smoking),
+        obesity: parseInt(data.obesity),
+        alcohol_consumption: parseInt(data.alcohol_consumption),
+        exercise_hours_per_week: parseFloat(data.exercise_hours_per_week) || 3,
+        diet: data.diet,
+        previous_heart_problems: parseInt(data.previous_heart_problems),
+        medication_use: parseInt(data.medication_use),
+        stress_level: parseInt(data.stress_level) || 5,
+        sedentary_hours_per_day: parseFloat(data.sedentary_hours_per_day) || 8,
+        income: parseInt(data.income) || 50000,
+        bmi: parseFloat(data.bmi) || 25,
+        triglycerides: parseInt(data.triglycerides) || 150,
+        physical_activity_days_per_week: parseInt(data.physical_activity_days_per_week) || 3,
+        sleep_hours_per_day: parseInt(data.sleep_hours_per_day) || 7,
+      };
+
+      const response = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/predict-realtime`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        setRealTimeRisk(result);
+        setShowRealTimeRisk(true);
+      }
+    } catch (error) {
+      console.error('Real-time prediction error:', error);
+    }
   };
 
   const renderField = (field: keyof PatientData) => {
