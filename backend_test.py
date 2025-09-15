@@ -347,6 +347,283 @@ class BackendTester:
         except Exception as e:
             self.log_result("Patient History", False, f"Error: {str(e)}")
             return False
+
+    def test_enhanced_prediction_endpoint(self):
+        """Test the enhanced prediction endpoint with multiple cardiovascular risks"""
+        try:
+            response = requests.post(
+                f"{BACKEND_URL}/predict",
+                json=SAMPLE_PATIENT_DATA,
+                headers={"Content-Type": "application/json"},
+                timeout=30
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                
+                # Check if response has cardiovascular_risks (enhanced feature)
+                if "cardiovascular_risks" in data:
+                    cv_risks = data["cardiovascular_risks"]
+                    
+                    # Verify all required risk types
+                    required_risks = ["heart_attack", "stroke", "heart_failure", "arrhythmia", "overall_cardiovascular"]
+                    missing_risks = [risk for risk in required_risks if risk not in cv_risks]
+                    
+                    if missing_risks:
+                        self.log_result("Enhanced Prediction - Multiple Risks", False, f"Missing cardiovascular risks: {missing_risks}")
+                        return False
+                    
+                    # Verify each risk has probability and risk_level
+                    for risk_type, risk_data in cv_risks.items():
+                        if "probability" not in risk_data or "risk_level" not in risk_data:
+                            self.log_result("Enhanced Prediction - Multiple Risks", False, f"Missing probability/risk_level for {risk_type}")
+                            return False
+                        
+                        if not isinstance(risk_data["probability"], (int, float)) or not (0 <= risk_data["probability"] <= 1):
+                            self.log_result("Enhanced Prediction - Multiple Risks", False, f"Invalid probability for {risk_type}: {risk_data['probability']}")
+                            return False
+                        
+                        if risk_data["risk_level"] not in ["Low", "Medium", "High"]:
+                            self.log_result("Enhanced Prediction - Multiple Risks", False, f"Invalid risk level for {risk_type}: {risk_data['risk_level']}")
+                            return False
+                    
+                    self.log_result("Enhanced Prediction - Multiple Risks", True, 
+                                  f"Multiple cardiovascular risks returned successfully. Heart attack: {cv_risks['heart_attack']['risk_level']}, Stroke: {cv_risks['stroke']['risk_level']}, Overall: {cv_risks['overall_cardiovascular']['risk_level']}")
+                    return True
+                else:
+                    self.log_result("Enhanced Prediction - Multiple Risks", False, "No cardiovascular_risks object found in response")
+                    return False
+                    
+            else:
+                self.log_result("Enhanced Prediction - Multiple Risks", False, f"HTTP {response.status_code}: {response.text}")
+                return False
+                
+        except Exception as e:
+            self.log_result("Enhanced Prediction - Multiple Risks", False, f"Error: {str(e)}")
+            return False
+
+    def test_risk_factors_analysis(self):
+        """Test risk factors analysis in prediction response"""
+        try:
+            response = requests.post(
+                f"{BACKEND_URL}/predict",
+                json=SAMPLE_PATIENT_DATA,
+                headers={"Content-Type": "application/json"},
+                timeout=30
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                
+                if "risk_factors_analysis" not in data:
+                    self.log_result("Risk Factors Analysis", False, "No risk_factors_analysis found in response")
+                    return False
+                
+                analysis = data["risk_factors_analysis"]
+                
+                # Check for top_risk_factors
+                if "top_risk_factors" in analysis:
+                    if not isinstance(analysis["top_risk_factors"], list):
+                        self.log_result("Risk Factors Analysis", False, "top_risk_factors should be a list")
+                        return False
+                    
+                    # Verify structure of risk factors
+                    for factor in analysis["top_risk_factors"]:
+                        if "factor" not in factor or "importance" not in factor:
+                            self.log_result("Risk Factors Analysis", False, f"Invalid risk factor structure: {factor}")
+                            return False
+                
+                # Check for risk_categories
+                if "risk_categories" in analysis:
+                    categories = analysis["risk_categories"]
+                    required_categories = ["modifiable_high_risk", "modifiable_medium_risk", "non_modifiable"]
+                    
+                    for category in required_categories:
+                        if category not in categories:
+                            self.log_result("Risk Factors Analysis", False, f"Missing risk category: {category}")
+                            return False
+                        
+                        if not isinstance(categories[category], list):
+                            self.log_result("Risk Factors Analysis", False, f"Risk category {category} should be a list")
+                            return False
+                
+                self.log_result("Risk Factors Analysis", True, 
+                              f"Risk factors analysis working. Top factors count: {len(analysis.get('top_risk_factors', []))}")
+                return True
+                
+            else:
+                self.log_result("Risk Factors Analysis", False, f"HTTP {response.status_code}: {response.text}")
+                return False
+                
+        except Exception as e:
+            self.log_result("Risk Factors Analysis", False, f"Error: {str(e)}")
+            return False
+
+    def test_realtime_prediction_endpoint(self):
+        """Test the real-time prediction endpoint"""
+        try:
+            response = requests.post(
+                f"{BACKEND_URL}/predict-realtime",
+                json=SAMPLE_PATIENT_DATA,
+                headers={"Content-Type": "application/json"},
+                timeout=30
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                
+                # Should return cardiovascular_risks without saving to database
+                required_fields = ["cardiovascular_risks", "risk_factors_analysis", "lifestyle_impact"]
+                missing_fields = [field for field in required_fields if field not in data]
+                
+                if missing_fields:
+                    self.log_result("Real-time Prediction", False, f"Missing fields: {missing_fields}")
+                    return False
+                
+                # Verify cardiovascular_risks structure
+                cv_risks = data["cardiovascular_risks"]
+                required_risks = ["heart_attack", "stroke", "heart_failure", "arrhythmia", "overall_cardiovascular"]
+                
+                for risk_type in required_risks:
+                    if risk_type not in cv_risks:
+                        self.log_result("Real-time Prediction", False, f"Missing risk type: {risk_type}")
+                        return False
+                    
+                    risk_data = cv_risks[risk_type]
+                    if "probability" not in risk_data or "risk_level" not in risk_data:
+                        self.log_result("Real-time Prediction", False, f"Missing probability/risk_level for {risk_type}")
+                        return False
+                
+                self.log_result("Real-time Prediction", True, 
+                              f"Real-time prediction working. Overall CV risk: {cv_risks['overall_cardiovascular']['risk_level']}")
+                return True
+                
+            else:
+                self.log_result("Real-time Prediction", False, f"HTTP {response.status_code}: {response.text}")
+                return False
+                
+        except Exception as e:
+            self.log_result("Real-time Prediction", False, f"Error: {str(e)}")
+            return False
+
+    def test_lifestyle_impact_analysis_endpoint(self):
+        """Test the lifestyle impact analysis endpoint"""
+        try:
+            response = requests.post(
+                f"{BACKEND_URL}/analyze-lifestyle-impact",
+                json=SAMPLE_PATIENT_DATA,
+                headers={"Content-Type": "application/json"},
+                timeout=30
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                
+                required_fields = ["baseline_risk", "lifestyle_scenarios", "recommendations_priority"]
+                missing_fields = [field for field in required_fields if field not in data]
+                
+                if missing_fields:
+                    self.log_result("Lifestyle Impact Analysis", False, f"Missing fields: {missing_fields}")
+                    return False
+                
+                # Verify baseline_risk structure
+                baseline_risk = data["baseline_risk"]
+                required_risks = ["heart_attack", "stroke", "heart_failure", "arrhythmia", "overall_cardiovascular"]
+                
+                for risk_type in required_risks:
+                    if risk_type not in baseline_risk:
+                        self.log_result("Lifestyle Impact Analysis", False, f"Missing baseline risk type: {risk_type}")
+                        return False
+                
+                # Verify lifestyle scenarios
+                scenarios = data["lifestyle_scenarios"]
+                expected_scenarios = ["quit_smoking", "weight_loss", "increase_exercise", "improve_diet"]
+                
+                # Check if at least some scenarios are present (based on patient data)
+                scenario_count = len(scenarios)
+                if scenario_count == 0:
+                    self.log_result("Lifestyle Impact Analysis", False, "No lifestyle scenarios generated")
+                    return False
+                
+                # Verify scenario structure
+                for scenario_name, scenario_data in scenarios.items():
+                    required_scenario_fields = ["description", "risk_reduction", "new_risk_level", "cardiovascular_improvement"]
+                    missing_scenario_fields = [field for field in required_scenario_fields if field not in scenario_data]
+                    
+                    if missing_scenario_fields:
+                        self.log_result("Lifestyle Impact Analysis", False, f"Missing fields in scenario {scenario_name}: {missing_scenario_fields}")
+                        return False
+                
+                # Verify recommendations priority
+                recommendations = data["recommendations_priority"]
+                if not isinstance(recommendations, list):
+                    self.log_result("Lifestyle Impact Analysis", False, "recommendations_priority should be a list")
+                    return False
+                
+                for rec in recommendations:
+                    if "action" not in rec or "impact_score" not in rec or "priority" not in rec:
+                        self.log_result("Lifestyle Impact Analysis", False, f"Invalid recommendation structure: {rec}")
+                        return False
+                
+                self.log_result("Lifestyle Impact Analysis", True, 
+                              f"Lifestyle impact analysis working. Scenarios: {list(scenarios.keys())}, Recommendations: {len(recommendations)}")
+                return True
+                
+            else:
+                self.log_result("Lifestyle Impact Analysis", False, f"HTTP {response.status_code}: {response.text}")
+                return False
+                
+        except Exception as e:
+            self.log_result("Lifestyle Impact Analysis", False, f"Error: {str(e)}")
+            return False
+
+    def test_lifestyle_impact_in_prediction(self):
+        """Test lifestyle impact scenarios in regular prediction response"""
+        try:
+            response = requests.post(
+                f"{BACKEND_URL}/predict",
+                json=SAMPLE_PATIENT_DATA,
+                headers={"Content-Type": "application/json"},
+                timeout=30
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                
+                if "lifestyle_impact" not in data:
+                    self.log_result("Lifestyle Impact in Prediction", False, "No lifestyle_impact found in prediction response")
+                    return False
+                
+                lifestyle_impact = data["lifestyle_impact"]
+                
+                # Based on our sample data, we should have scenarios for:
+                # - quit_smoking (smoking=1)
+                # - weight_loss (BMI=32.0 > 25)
+                # - increase_exercise (exercise_hours_per_week=1.5 < 5)
+                expected_scenarios = ["quit_smoking", "weight_loss", "increase_exercise"]
+                
+                found_scenarios = []
+                for scenario in expected_scenarios:
+                    if scenario in lifestyle_impact:
+                        scenario_data = lifestyle_impact[scenario]
+                        if "risk_reduction" in scenario_data and "description" in scenario_data:
+                            found_scenarios.append(scenario)
+                
+                if len(found_scenarios) == 0:
+                    self.log_result("Lifestyle Impact in Prediction", False, "No valid lifestyle scenarios found")
+                    return False
+                
+                self.log_result("Lifestyle Impact in Prediction", True, 
+                              f"Lifestyle impact scenarios working. Found: {found_scenarios}")
+                return True
+                
+            else:
+                self.log_result("Lifestyle Impact in Prediction", False, f"HTTP {response.status_code}: {response.text}")
+                return False
+                
+        except Exception as e:
+            self.log_result("Lifestyle Impact in Prediction", False, f"Error: {str(e)}")
+            return False
     
     def run_all_tests(self):
         """Run all backend tests"""
