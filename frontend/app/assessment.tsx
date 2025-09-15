@@ -79,6 +79,108 @@ export default function Assessment() {
   const [currentField, setCurrentField] = useState<string | null>(null);
   const recognitionRef = React.useRef<any>(null);
 
+  useEffect(() => {
+    initializeVoiceRecognition();
+  }, []);
+
+  const initializeVoiceRecognition = () => {
+    if (typeof window !== 'undefined') {
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      
+      if (SpeechRecognition) {
+        setVoiceEnabled(true);
+        const recognition = new SpeechRecognition();
+        
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognition.lang = 'en-US';
+        
+        recognition.onstart = () => {
+          setIsListening(true);
+        };
+        
+        recognition.onresult = (event: any) => {
+          const result = event.results[0][0].transcript.toLowerCase().trim();
+          if (currentField) {
+            processVoiceInput(currentField, result);
+          }
+        };
+        
+        recognition.onerror = (event: any) => {
+          console.error('Speech recognition error:', event.error);
+          setIsListening(false);
+          Alert.alert('Voice Error', 'Could not recognize speech. Please try again.');
+        };
+        
+        recognition.onend = () => {
+          setIsListening(false);
+        };
+        
+        recognitionRef.current = recognition;
+      }
+    }
+  };
+
+  const startVoiceInput = (fieldName: string) => {
+    if (recognitionRef.current && voiceEnabled) {
+      setCurrentField(fieldName);
+      try {
+        recognitionRef.current.start();
+      } catch (error) {
+        console.error('Error starting speech recognition:', error);
+      }
+    }
+  };
+
+  const processVoiceInput = (fieldName: string, transcript: string) => {
+    let processedValue = transcript;
+    
+    // Process different field types
+    if (fieldName === 'age') {
+      const ageMatch = transcript.match(/\d+/);
+      if (ageMatch) {
+        processedValue = ageMatch[0];
+      }
+    } else if (fieldName === 'sex') {
+      if (transcript.includes('male') && !transcript.includes('female')) {
+        processedValue = 'Male';
+      } else if (transcript.includes('female')) {
+        processedValue = 'Female';
+      }
+    } else if (fieldName === 'diet') {
+      if (transcript.includes('healthy')) {
+        processedValue = 'Healthy';
+      } else if (transcript.includes('unhealthy')) {
+        processedValue = 'Unhealthy';
+      } else {
+        processedValue = 'Average';
+      }
+    } else if (['diabetes', 'family_history', 'smoking', 'obesity', 'alcohol_consumption', 'previous_heart_problems', 'medication_use'].includes(fieldName)) {
+      if (transcript.includes('yes') || transcript.includes('true') || transcript.includes('positive')) {
+        processedValue = '1';
+      } else {
+        processedValue = '0';
+      }
+    } else {
+      // For numeric fields, extract numbers
+      const numberMatch = transcript.match(/\d+\.?\d*/);
+      if (numberMatch) {
+        processedValue = numberMatch[0];
+      }
+    }
+    
+    updateField(fieldName as keyof PatientData, processedValue);
+    setCurrentField(null);
+    
+    // Provide voice feedback
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      const utterance = new SpeechSynthesisUtterance(`Recorded ${fieldName.replace('_', ' ')}: ${processedValue}`);
+      utterance.rate = 1;
+      utterance.volume = 0.8;
+      window.speechSynthesis.speak(utterance);
+    }
+  };
+
   const steps = [
     {
       title: "Basic Information",
