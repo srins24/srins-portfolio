@@ -132,6 +132,18 @@ backend:
         agent: "testing"
         comment: "All backend API endpoints tested successfully. Fixed MongoDB ObjectId serialization issue in patient-history and recent-predictions endpoints. All 8 tests passed: health check, model performance, feature importance, health stats, recent predictions, prediction endpoint, error handling, and patient history. Database integration working correctly with predictions being saved and retrieved properly."
 
+  - task: "Enhanced Cardiovascular Risk Prediction API"
+    implemented: true
+    working: true
+    file: "server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "COMPREHENSIVE ADVANCED CARDIOVASCULAR RISK PREDICTION TESTING COMPLETED SUCCESSFULLY! All 13 tests passed (100% success rate). ✅ Enhanced /api/predict endpoint now returns multiple cardiovascular risks (heart_attack, stroke, heart_failure, arrhythmia, overall_cardiovascular) with probability and risk_level for each. ✅ Risk factors analysis working with top_risk_factors and risk_categories (modifiable_high_risk, modifiable_medium_risk, non_modifiable). ✅ Lifestyle impact scenarios working (quit_smoking, weight_loss, increase_exercise) with risk_reduction calculations. ✅ /api/predict-realtime endpoint working for real-time predictions without database storage. ✅ /api/analyze-lifestyle-impact endpoint providing detailed lifestyle modification scenarios with cardiovascular improvement metrics. ✅ Error handling working correctly with proper HTTP status codes (422 for validation errors). ✅ All existing endpoints still functional. Advanced AI-powered cardiovascular risk assessment system is fully operational and production-ready!"
+
 frontend:
   - task: "Home Screen Dashboard"
     implemented: true
