@@ -149,7 +149,7 @@ class CardiovascularRiskPredictor:
         logger.info(f"Best model: {self.best_model_name} with ROC-AUC: {best_score:.4f}")
     
     def predict(self, features: Dict[str, Any]) -> Dict[str, Any]:
-        """Make prediction using the best model"""
+        """Make comprehensive cardiovascular risk prediction"""
         if not self.best_model:
             raise ValueError("No trained model available")
         
@@ -172,17 +172,215 @@ class CardiovascularRiskPredictor:
         if self.best_model_name == 'neural_network':
             input_scaled = self.scaler.transform(input_df)
             prediction = self.best_model.predict(input_scaled)[0]
-            probability = self.best_model.predict_proba(input_scaled)[0]
+            base_probability = self.best_model.predict_proba(input_scaled)[0]
         else:
             prediction = self.best_model.predict(input_df)[0]
-            probability = self.best_model.predict_proba(input_df)[0]
+            base_probability = self.best_model.predict_proba(input_df)[0]
+        
+        # Calculate multiple cardiovascular risks
+        heart_attack_prob = float(base_probability[1])
+        
+        # Calculate derived cardiovascular risks based on risk factors
+        stroke_risk = self._calculate_stroke_risk(features, heart_attack_prob)
+        heart_failure_risk = self._calculate_heart_failure_risk(features, heart_attack_prob)
+        arrhythmia_risk = self._calculate_arrhythmia_risk(features, heart_attack_prob)
+        
+        # Calculate overall cardiovascular risk score
+        overall_cv_risk = (heart_attack_prob * 0.4 + stroke_risk * 0.25 + 
+                          heart_failure_risk * 0.2 + arrhythmia_risk * 0.15)
+        
+        # Risk level classification
+        def get_risk_level(prob):
+            if prob > 0.7: return 'High'
+            elif prob > 0.4: return 'Medium'
+            else: return 'Low'
         
         return {
             'prediction': int(prediction),
-            'risk_probability': float(probability[1]),
+            'cardiovascular_risks': {
+                'heart_attack': {
+                    'probability': heart_attack_prob,
+                    'risk_level': get_risk_level(heart_attack_prob)
+                },
+                'stroke': {
+                    'probability': stroke_risk,
+                    'risk_level': get_risk_level(stroke_risk)
+                },
+                'heart_failure': {
+                    'probability': heart_failure_risk,
+                    'risk_level': get_risk_level(heart_failure_risk)
+                },
+                'arrhythmia': {
+                    'probability': arrhythmia_risk,
+                    'risk_level': get_risk_level(arrhythmia_risk)
+                },
+                'overall_cardiovascular': {
+                    'probability': overall_cv_risk,
+                    'risk_level': get_risk_level(overall_cv_risk)
+                }
+            },
+            'risk_probability': heart_attack_prob,  # Backward compatibility
             'model_used': self.best_model_name,
-            'risk_level': 'High' if probability[1] > 0.7 else 'Medium' if probability[1] > 0.3 else 'Low'
+            'risk_level': get_risk_level(heart_attack_prob),  # Backward compatibility
+            'risk_factors_analysis': self._analyze_risk_factors(features),
+            'lifestyle_impact': self._calculate_lifestyle_impact(features)
         }
+    
+    def _calculate_stroke_risk(self, features: Dict[str, Any], base_risk: float) -> float:
+        """Calculate stroke risk based on specific risk factors"""
+        stroke_multiplier = 1.0
+        
+        # Age factor
+        age = features.get('Age', 0)
+        if age > 65: stroke_multiplier *= 1.5
+        elif age > 55: stroke_multiplier *= 1.3
+        
+        # Blood pressure factor
+        systolic = features.get('Systolic_BP', 120)
+        if systolic > 160: stroke_multiplier *= 1.8
+        elif systolic > 140: stroke_multiplier *= 1.4
+        
+        # Diabetes factor
+        if features.get('Diabetes', 0): stroke_multiplier *= 1.6
+        
+        # Smoking factor
+        if features.get('Smoking', 0): stroke_multiplier *= 1.5
+        
+        return min(base_risk * stroke_multiplier * 0.8, 1.0)
+    
+    def _calculate_heart_failure_risk(self, features: Dict[str, Any], base_risk: float) -> float:
+        """Calculate heart failure risk"""
+        hf_multiplier = 1.0
+        
+        # Age factor
+        age = features.get('Age', 0)
+        if age > 70: hf_multiplier *= 1.6
+        elif age > 60: hf_multiplier *= 1.3
+        
+        # BMI factor
+        bmi = features.get('BMI', 25)
+        if bmi > 35: hf_multiplier *= 1.5
+        elif bmi > 30: hf_multiplier *= 1.3
+        
+        # Previous heart problems
+        if features.get('Previous Heart Problems', 0): hf_multiplier *= 2.0
+        
+        # Sedentary lifestyle
+        sedentary = features.get('Sedentary Hours Per Day', 8)
+        if sedentary > 10: hf_multiplier *= 1.3
+        
+        return min(base_risk * hf_multiplier * 0.7, 1.0)
+    
+    def _calculate_arrhythmia_risk(self, features: Dict[str, Any], base_risk: float) -> float:
+        """Calculate arrhythmia risk"""
+        arr_multiplier = 1.0
+        
+        # Stress factor
+        stress = features.get('Stress Level', 5)
+        if stress > 8: arr_multiplier *= 1.4
+        elif stress > 6: arr_multiplier *= 1.2
+        
+        # Alcohol consumption
+        if features.get('Alcohol Consumption', 0): arr_multiplier *= 1.3
+        
+        # Sleep factor
+        sleep = features.get('Sleep Hours Per Day', 7)
+        if sleep < 6 or sleep > 9: arr_multiplier *= 1.2
+        
+        # Heart rate
+        hr = features.get('Heart Rate', 70)
+        if hr > 100 or hr < 50: arr_multiplier *= 1.4
+        
+        return min(base_risk * arr_multiplier * 0.6, 1.0)
+    
+    def _analyze_risk_factors(self, features: Dict[str, Any]) -> Dict[str, Any]:
+        """Analyze individual risk factors"""
+        analysis = {}
+        
+        # Get feature importance if available
+        if self.best_model_name in self.feature_importance:
+            importance = self.feature_importance[self.best_model_name]
+            sorted_factors = sorted(importance.items(), key=lambda x: x[1], reverse=True)[:10]
+            analysis['top_risk_factors'] = [
+                {'factor': factor, 'importance': float(imp)} 
+                for factor, imp in sorted_factors
+            ]
+        
+        # Risk factor categories
+        analysis['risk_categories'] = {
+            'modifiable_high_risk': [],
+            'modifiable_medium_risk': [],
+            'non_modifiable': []
+        }
+        
+        # Categorize risk factors
+        age = features.get('Age', 0)
+        if age > 65:
+            analysis['risk_categories']['non_modifiable'].append('Advanced age (>65)')
+        
+        if features.get('Smoking', 0):
+            analysis['risk_categories']['modifiable_high_risk'].append('Smoking')
+        
+        bmi = features.get('BMI', 25)
+        if bmi > 30:
+            analysis['risk_categories']['modifiable_high_risk'].append('Obesity')
+        elif bmi > 25:
+            analysis['risk_categories']['modifiable_medium_risk'].append('Overweight')
+        
+        systolic = features.get('Systolic_BP', 120)
+        if systolic > 140:
+            analysis['risk_categories']['modifiable_high_risk'].append('High blood pressure')
+        
+        cholesterol = features.get('Cholesterol', 200)
+        if cholesterol > 240:
+            analysis['risk_categories']['modifiable_high_risk'].append('High cholesterol')
+        
+        exercise = features.get('Exercise Hours Per Week', 0)
+        if exercise < 2.5:
+            analysis['risk_categories']['modifiable_medium_risk'].append('Insufficient exercise')
+        
+        return analysis
+    
+    def _calculate_lifestyle_impact(self, features: Dict[str, Any]) -> Dict[str, Any]:
+        """Calculate potential impact of lifestyle changes"""
+        scenarios = {}
+        
+        # Smoking cessation impact
+        if features.get('Smoking', 0):
+            modified_features = features.copy()
+            modified_features['Smoking'] = 0
+            improved_result = self.predict(modified_features)
+            original_risk = features.get('risk_probability', 0.5)
+            scenarios['quit_smoking'] = {
+                'risk_reduction': max(0, original_risk - improved_result['risk_probability']),
+                'description': 'Quitting smoking'
+            }
+        
+        # Weight loss impact
+        current_bmi = features.get('BMI', 25)
+        if current_bmi > 25:
+            modified_features = features.copy()
+            modified_features['BMI'] = min(25, current_bmi * 0.9)  # 10% weight loss
+            improved_result = self.predict(modified_features)
+            original_risk = features.get('risk_probability', 0.5)
+            scenarios['weight_loss'] = {
+                'risk_reduction': max(0, original_risk - improved_result['risk_probability']),
+                'description': 'Losing 10% body weight'
+            }
+        
+        # Exercise increase impact
+        current_exercise = features.get('Exercise Hours Per Week', 0)
+        if current_exercise < 5:
+            modified_features = features.copy()
+            modified_features['Exercise Hours Per Week'] = min(5, current_exercise + 2.5)
+            improved_result = self.predict(modified_features)
+            original_risk = features.get('risk_probability', 0.5)
+            scenarios['increase_exercise'] = {
+                'risk_reduction': max(0, original_risk - improved_result['risk_probability']),
+                'description': 'Adding 2.5 hours of exercise per week'
+            }
+        
+        return scenarios
     
     def get_feature_importance(self, model_name: str = None) -> Dict[str, float]:
         """Get feature importance for specified model or best model"""
