@@ -72,6 +72,8 @@ export default function Assessment() {
   const [currentStep, setCurrentStep] = useState(0);
   const [patientData, setPatientData] = useState<PatientData>(initialData);
   const [isLoading, setIsLoading] = useState(false);
+  const [realTimeRisk, setRealTimeRisk] = useState<any>(null);
+  const [showRealTimeRisk, setShowRealTimeRisk] = useState(false);
 
   const steps = [
     {
