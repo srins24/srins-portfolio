@@ -27,7 +27,7 @@ app = FastAPI(title="Heart Disease Risk Prediction API")
 api_router = APIRouter(prefix="/api")
 
 # Initialize ML predictor
-predictor = HeartDiseasePredictor()
+predictor = CardiovascularRiskPredictor()
 
 # Load trained models if they exist
 try:
