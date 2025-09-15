@@ -384,9 +384,9 @@ export default function Assessment() {
 
       const result = await response.json();
       
-      // Navigate to results page with the prediction data
+      // Navigate to advanced results page with the prediction data
       router.push({
-        pathname: '/results',
+        pathname: '/advanced-results',
         params: { resultData: JSON.stringify(result) }
       });
       
