@@ -659,4 +659,47 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+  realTimeRiskCard: {
+    backgroundColor: '#1a2332',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: '#2196F3',
+  },
+  realTimeRiskTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#ffffff',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  riskGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 12,
+  },
+  miniRiskCard: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  miniRiskType: {
+    fontSize: 20,
+    marginBottom: 4,
+  },
+  miniRiskLevel: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    marginBottom: 2,
+  },
+  miniRiskPercent: {
+    fontSize: 10,
+    color: '#cccccc',
+  },
+  realTimeNote: {
+    fontSize: 11,
+    color: '#888888',
+    textAlign: 'center',
+    fontStyle: 'italic',
+  },
 });
