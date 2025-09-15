@@ -440,6 +440,35 @@ export default function Assessment() {
             <Text style={styles.stepTitle}>{currentStepData.title}</Text>
           </View>
 
+          {/* Real-time Risk Display */}
+          {showRealTimeRisk && realTimeRisk && currentStep >= 2 && (
+            <View style={styles.realTimeRiskCard}>
+              <Text style={styles.realTimeRiskTitle}>⚡ Live Risk Analysis</Text>
+              <View style={styles.riskGrid}>
+                {realTimeRisk.cardiovascular_risks && Object.entries(realTimeRisk.cardiovascular_risks).slice(0, 3).map(([riskType, riskData]: [string, any]) => (
+                  <View key={riskType} style={styles.miniRiskCard}>
+                    <Text style={styles.miniRiskType}>
+                      {riskType === 'heart_attack' ? '💔' : riskType === 'stroke' ? '🧠' : '❤️'}
+                    </Text>
+                    <Text style={styles.miniRiskLevel} 
+                          style={[styles.miniRiskLevel, { 
+                            color: riskData.risk_level === 'High' ? '#F44336' : 
+                                   riskData.risk_level === 'Medium' ? '#FF9800' : '#4CAF50' 
+                          }]}>
+                      {riskData.risk_level}
+                    </Text>
+                    <Text style={styles.miniRiskPercent}>
+                      {(riskData.probability * 100).toFixed(0)}%
+                    </Text>
+                  </View>
+                ))}
+              </View>
+              <Text style={styles.realTimeNote}>
+                Risk updates as you provide more information
+              </Text>
+            </View>
+          )}
+
           <View style={styles.fieldsContainer}>
             {currentStepData.fields.map(field => renderField(field as keyof PatientData))}
           </View>
