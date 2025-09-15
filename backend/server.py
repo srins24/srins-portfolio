@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 from typing import List, Dict, Any, Optional
 import uuid
 from datetime import datetime
-from ml_pipeline import HeartDiseasePredictor
+from ml_pipeline import CardiovascularRiskPredictor
 import joblib
 
 ROOT_DIR = Path(__file__).parent
