@@ -476,6 +476,156 @@ async def analyze_lifestyle_impact(patient_data: PatientInput):
         logging.error(f"Lifestyle impact analysis error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Lifestyle analysis failed: {str(e)}")
 
+@api_router.get("/continuous-monitoring/{patient_id}")
+async def get_continuous_monitoring(patient_id: str):
+    """Get continuous risk monitoring data for a patient"""
+    try:
+        # Get patient's latest assessment
+        latest_assessment = await db.patient_history.find_one(
+            {"patient_id": patient_id},
+            sort=[("timestamp", -1)]
+        )
+        
+        if not latest_assessment:
+            raise HTTPException(status_code=404, detail="No assessment found for patient")
+        
+        # Get patient's risk history (last 30 days)
+        thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+        risk_history = await db.patient_history.find({
+            "patient_id": patient_id,
+            "timestamp": {"$gte": thirty_days_ago}
+        }).sort("timestamp", -1).to_list(30)
+        
+        # Calculate risk trends
+        risk_trends = []
+        for assessment in risk_history:
+            if 'cardiovascular_risks' in assessment.get('prediction_result', {}):
+                cv_risks = assessment['prediction_result']['cardiovascular_risks']
+                risk_trends.append({
+                    'timestamp': assessment['timestamp'],
+                    'overall_risk': cv_risks.get('overall_cardiovascular', {}).get('probability', 0),
+                    'heart_attack_risk': cv_risks.get('heart_attack', {}).get('probability', 0),
+                    'stroke_risk': cv_risks.get('stroke', {}).get('probability', 0),
+                    'heart_failure_risk': cv_risks.get('heart_failure', {}).get('probability', 0),
+                    'arrhythmia_risk': cv_risks.get('arrhythmia', {}).get('probability', 0)
+                })
+        
+        # Generate monitoring alerts based on trends
+        alerts = []
+        if len(risk_trends) >= 2:
+            recent_risk = risk_trends[0]['overall_risk']
+            previous_risk = risk_trends[1]['overall_risk']
+            
+            if recent_risk > previous_risk + 0.1:
+                alerts.append("📈 Your cardiovascular risk has increased since last assessment")
+            elif recent_risk < previous_risk - 0.1:
+                alerts.append("📉 Great progress! Your cardiovascular risk is decreasing")
+                
+            if recent_risk > 0.7:
+                alerts.append("🚨 High risk detected - please consult your healthcare provider")
+            elif recent_risk > 0.5:
+                alerts.append("⚠️ Moderate risk - consider lifestyle modifications")
+        
+        # Calculate monitoring score (0-100)
+        base_score = 100
+        if latest_assessment['prediction_result'].get('risk_level') == 'High':
+            base_score -= 30
+        elif latest_assessment['prediction_result'].get('risk_level') == 'Medium':
+            base_score -= 15
+            
+        # Adjust for trends
+        if len(risk_trends) >= 2 and risk_trends[0]['overall_risk'] > risk_trends[1]['overall_risk']:
+            base_score -= 10
+            
+        monitoring_score = max(0, min(100, base_score))
+        
+        # Next assessment recommendation
+        days_since_last = (datetime.utcnow() - latest_assessment['timestamp']).days
+        if latest_assessment['prediction_result'].get('risk_level') == 'High':
+            next_assessment_days = 30
+        elif latest_assessment['prediction_result'].get('risk_level') == 'Medium':
+            next_assessment_days = 90
+        else:
+            next_assessment_days = 180
+            
+        next_assessment_due = datetime.utcnow() + timedelta(days=max(0, next_assessment_days - days_since_last))
+        
+        return {
+            'patient_id': patient_id,
+            'current_risks': latest_assessment['prediction_result'].get('cardiovascular_risks', {}),
+            'risk_trends': risk_trends,
+            'monitoring_score': monitoring_score,
+            'alerts': alerts,
+            'next_assessment_due': next_assessment_due.isoformat(),
+            'days_since_last_assessment': days_since_last,
+            'assessment_frequency_recommendation': next_assessment_days,
+            'total_assessments': len(risk_history)
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Continuous monitoring error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Monitoring failed: {str(e)}")
+
+@api_router.post("/update-risk-factors")
+async def update_risk_factors(patient_data: PatientInput):
+    """Update risk factors and get immediate risk recalculation"""
+    try:
+        features = {
+            'Age': patient_data.age,
+            'Sex': patient_data.sex,
+            'Cholesterol': patient_data.cholesterol,
+            'Systolic_BP': patient_data.systolic_bp,
+            'Diastolic_BP': patient_data.diastolic_bp,
+            'Heart Rate': patient_data.heart_rate,
+            'Diabetes': patient_data.diabetes,
+            'Family History': patient_data.family_history,
+            'Smoking': patient_data.smoking,
+            'Obesity': patient_data.obesity,
+            'Alcohol Consumption': patient_data.alcohol_consumption,
+            'Exercise Hours Per Week': patient_data.exercise_hours_per_week,
+            'Diet': patient_data.diet,
+            'Previous Heart Problems': patient_data.previous_heart_problems,
+            'Medication Use': patient_data.medication_use,
+            'Stress Level': patient_data.stress_level,
+            'Sedentary Hours Per Day': patient_data.sedentary_hours_per_day,
+            'Income': patient_data.income,
+            'BMI': patient_data.bmi,
+            'Triglycerides': patient_data.triglycerides,
+            'Physical Activity Days Per Week': patient_data.physical_activity_days_per_week,
+            'Sleep Hours Per Day': patient_data.sleep_hours_per_day
+        }
+        
+        # Get updated prediction
+        result = predictor.predict(features)
+        
+        # Store as updated risk factors (not full assessment)  
+        patient_id = str(uuid.uuid4())
+        update_record = {
+            'patient_id': patient_id,
+            'type': 'risk_factor_update',
+            'updated_factors': dict(patient_data),
+            'cardiovascular_risks': result['cardiovascular_risks'],
+            'timestamp': datetime.utcnow(),
+            'risk_change_analysis': result.get('lifestyle_impact', {})
+        }
+        
+        await db.risk_updates.insert_one(update_record)
+        
+        return {
+            'patient_id': patient_id,
+            'cardiovascular_risks': result['cardiovascular_risks'],
+            'risk_factors_analysis': result.get('risk_factors_analysis', {}),
+            'lifestyle_impact': result.get('lifestyle_impact', {}),
+            'timestamp': datetime.utcnow().isoformat(),
+            'update_type': 'risk_factor_modification'
+        }
+        
+    except Exception as e:
+        logging.error(f"Lifestyle impact analysis error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Lifestyle analysis failed: {str(e)}")
+
 def _get_priority_recommendations(scenarios):
     """Get prioritized recommendations based on impact"""
     priorities = []
