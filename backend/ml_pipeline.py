@@ -416,7 +416,7 @@ class CardiovascularRiskPredictor:
 
 def train_and_save_models():
     """Main function to train and save models"""
-    predictor = HeartDiseasePredictor()
+    predictor = CardiovascularRiskPredictor()
     
     # Load and preprocess data
     X, y = predictor.load_and_preprocess_data('/app/heart_attack_prediction_dataset.csv')
