@@ -74,6 +74,10 @@ export default function Assessment() {
   const [isLoading, setIsLoading] = useState(false);
   const [realTimeRisk, setRealTimeRisk] = useState<any>(null);
   const [showRealTimeRisk, setShowRealTimeRisk] = useState(false);
+  const [voiceEnabled, setVoiceEnabled] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [currentField, setCurrentField] = useState<string | null>(null);
+  const recognitionRef = React.useRef<any>(null);
 
   const steps = [
     {
