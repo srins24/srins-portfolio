@@ -13,30 +13,30 @@ import time
 # Get backend URL from frontend .env
 BACKEND_URL = "https://cardiorisk-predict.preview.emergentagent.com/api"
 
-# Test data for prediction endpoint
+# Test data for prediction endpoint - comprehensive patient data for advanced testing
 SAMPLE_PATIENT_DATA = {
-    "age": 45,
-    "sex": "Male",
-    "cholesterol": 250,
-    "systolic_bp": 140,
-    "diastolic_bp": 90,
-    "heart_rate": 80,
+    "age": 55,
+    "sex": "Male", 
+    "cholesterol": 280,
+    "systolic_bp": 160,
+    "diastolic_bp": 95,
+    "heart_rate": 90,
     "diabetes": 1,
     "family_history": 1,
     "smoking": 1,
     "obesity": 0,
     "alcohol_consumption": 1,
-    "exercise_hours_per_week": 2.5,
-    "diet": "Average",
+    "exercise_hours_per_week": 1.5,
+    "diet": "Unhealthy",
     "previous_heart_problems": 0,
     "medication_use": 1,
-    "stress_level": 7,
-    "sedentary_hours_per_day": 8.0,
-    "income": 50000,
-    "bmi": 28.5,
-    "triglycerides": 200,
-    "physical_activity_days_per_week": 3,
-    "sleep_hours_per_day": 7
+    "stress_level": 8,
+    "sedentary_hours_per_day": 10.0,
+    "income": 75000,
+    "bmi": 32.0,
+    "triglycerides": 220,
+    "physical_activity_days_per_week": 2,
+    "sleep_hours_per_day": 6
 }
 
 # Invalid test data for error handling
