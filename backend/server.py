@@ -191,6 +191,36 @@ async def predict_heart_disease_risk(patient_data: PatientInput):
         recommendations = generate_recommendations(patient_data, result['risk_level'])
         
         patient_id = str(uuid.uuid4())
+        
+        # Convert cardiovascular_risks to proper format
+        cardiovascular_risks = {}
+        for risk_type, risk_data in result['cardiovascular_risks'].items():
+            cardiovascular_risks[risk_type] = CardiovascularRisk(
+                probability=risk_data['probability'],
+                risk_level=risk_data['risk_level']
+            )
+        
+        # Convert risk_factors_analysis to proper format
+        risk_factors_analysis = RiskFactorsAnalysis(
+            top_risk_factors=[
+                RiskFactor(factor=rf['factor'], importance=rf['importance'])
+                for rf in result['risk_factors_analysis'].get('top_risk_factors', [])
+            ],
+            risk_categories=RiskCategories(
+                modifiable_high_risk=result['risk_factors_analysis'].get('risk_categories', {}).get('modifiable_high_risk', []),
+                modifiable_medium_risk=result['risk_factors_analysis'].get('risk_categories', {}).get('modifiable_medium_risk', []),
+                non_modifiable=result['risk_factors_analysis'].get('risk_categories', {}).get('non_modifiable', [])
+            )
+        )
+        
+        # Convert lifestyle_impact to proper format
+        lifestyle_impact = {}
+        for scenario_name, scenario_data in result['lifestyle_impact'].items():
+            lifestyle_impact[scenario_name] = LifestyleScenario(
+                risk_reduction=scenario_data['risk_reduction'],
+                description=scenario_data['description']
+            )
+        
         prediction_result = PredictionResult(
             patient_id=patient_id,
             prediction=result['prediction'],
@@ -198,7 +228,10 @@ async def predict_heart_disease_risk(patient_data: PatientInput):
             risk_level=result['risk_level'],
             model_used=result['model_used'],
             timestamp=datetime.utcnow(),
-            recommendations=recommendations
+            recommendations=recommendations,
+            cardiovascular_risks=cardiovascular_risks,
+            risk_factors_analysis=risk_factors_analysis,
+            lifestyle_impact=lifestyle_impact
         )
         
         # Save to database
