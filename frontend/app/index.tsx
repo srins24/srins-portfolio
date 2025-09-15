@@ -101,7 +101,7 @@ export default function Index() {
             <Text style={styles.cardIcon}>🩺</Text>
             <Text style={styles.cardTitle}>Risk Assessment</Text>
             <Text style={styles.cardDescription}>
-              Get your personalized heart disease risk prediction
+              Get your personalized heart disease risk prediction with voice input
             </Text>
             <View style={styles.cardButton}>
               <Text style={styles.buttonText}>Start Assessment</Text>
@@ -135,6 +135,21 @@ export default function Index() {
             </Text>
             <View style={styles.cardButton}>
               <Text style={styles.buttonText}>Monitor Risks</Text>
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[styles.actionCard, styles.aiCard]} 
+            onPress={() => router.push('/voice-assistant')}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.cardIcon}>🤖</Text>
+            <Text style={styles.cardTitle}>AI Health Coach</Text>
+            <Text style={styles.cardDescription}>
+              Voice-powered AI assistant for health guidance and risk explanations
+            </Text>
+            <View style={styles.cardButton}>
+              <Text style={styles.buttonText}>Talk to AI</Text>
             </View>
           </TouchableOpacity>
         </View>
