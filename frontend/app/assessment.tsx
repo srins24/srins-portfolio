@@ -450,8 +450,7 @@ export default function Assessment() {
                     <Text style={styles.miniRiskType}>
                       {riskType === 'heart_attack' ? '💔' : riskType === 'stroke' ? '🧠' : '❤️'}
                     </Text>
-                    <Text style={styles.miniRiskLevel} 
-                          style={[styles.miniRiskLevel, { 
+                    <Text style={[styles.miniRiskLevel, { 
                             color: riskData.risk_level === 'High' ? '#F44336' : 
                                    riskData.risk_level === 'Medium' ? '#FF9800' : '#4CAF50' 
                           }]}>
