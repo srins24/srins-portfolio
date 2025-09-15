@@ -64,6 +64,27 @@ class PatientInput(BaseModel):
     physical_activity_days_per_week: int = Field(..., ge=0, le=7, description="Physical activity days per week")
     sleep_hours_per_day: int = Field(..., ge=1, le=24, description="Sleep hours per day")
 
+class CardiovascularRisk(BaseModel):
+    probability: float
+    risk_level: str
+
+class RiskFactor(BaseModel):
+    factor: str
+    importance: float
+
+class RiskCategories(BaseModel):
+    modifiable_high_risk: List[str]
+    modifiable_medium_risk: List[str]
+    non_modifiable: List[str]
+
+class RiskFactorsAnalysis(BaseModel):
+    top_risk_factors: List[RiskFactor]
+    risk_categories: RiskCategories
+
+class LifestyleScenario(BaseModel):
+    risk_reduction: float
+    description: str
+
 class PredictionResult(BaseModel):
     patient_id: str
     prediction: int
@@ -72,6 +93,9 @@ class PredictionResult(BaseModel):
     model_used: str
     timestamp: datetime
     recommendations: List[str]
+    cardiovascular_risks: Dict[str, CardiovascularRisk]
+    risk_factors_analysis: RiskFactorsAnalysis
+    lifestyle_impact: Dict[str, LifestyleScenario]
 
 class PatientHistory(BaseModel):
     patient_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
