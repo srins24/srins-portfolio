@@ -350,9 +350,15 @@ export default function AdvancedVoiceFeatures() {
       setIsListening(true);
       recognitionRef.current.lang = voiceProfile.accent;
       recognitionRef.current.start();
-      
+      // Haptics feedback
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
       // Announce listening start in selected accent
       speakWithPersonality(`Hello! I'm listening in ${voiceOptions.find(v => v.code === voiceProfile.accent)?.personality} style. How can I help with your heart health today?`);
+    } else {
+      Alert.alert(
+        'Voice Input on this device',
+        'Live voice recognition is supported in the web preview. On native devices, transcription requires enabling server-side processing (Whisper). For now, use the AI Coach screen or try the web preview.'
+      );
     }
   };
 
