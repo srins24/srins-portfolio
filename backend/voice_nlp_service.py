@@ -11,8 +11,8 @@ import uuid
 import json
 import asyncio
 from datetime import datetime, timedelta
-import openai
-import whisper
+# import openai  # Optional - can be added when needed
+# import whisper  # Optional - can be added when needed
 import re
 from enum import Enum
 
