@@ -230,6 +230,9 @@ frontend:
     message: "Please test the Voice NLP endpoint: POST /api/voice/process-command with payload { text: 'Show my heart attack risk', context: {} }. Verify structured NLPResponse fields (intent, confidence, entities, response_text, suggested_actions, should_speak, priority). Also sanity-check GET /api/voice/voice-commands returns command categories. No authentication required. Frontend changes are pending manual verification; do not run frontend tests yet."
 
     status_history:
+  - agent: "testing"
+    message: "Voice NLP endpoints passed. POST /api/voice/process-command returns structured response with all required fields; GET /api/voice/voice-commands returns categories. Fixed undefined variable in voice_nlp_service overall path. 16 backend tests passed including new voice NLP tests."
+
       - working: "NA"
         agent: "main"
         comment: "Implemented advanced voice features page with English (US/UK) accents, 8 AI personalities, TTS on native (expo-speech) and web (SpeechSynthesis), simulated voice biometrics, smart alerts, emergency test, multi-user mode, and navigation card from Home. Uses backend /api/voice/process-command."
