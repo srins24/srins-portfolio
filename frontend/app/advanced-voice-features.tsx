@@ -230,34 +230,38 @@ export default function AdvancedVoiceFeatures() {
     setVoiceHealthInsights(insights);
   };
 
-  const processAdvancedVoiceCommand = async (transcript: string, confidence: number) => {
+  const processAdvancedVoiceCommand = async (transcript: string, confidence: number = 0.9) => {
     // Advanced command processing with personality and accent awareness
     const context = {
       user_profile: {
         accent: voiceProfile.accent,
         personality_preference: voiceProfile.personality,
-        medical_expertise_level: voiceProfile.medical_expertise
+        medical_expertise_level: voiceProfile.medical_expertise,
       },
       voice_biometrics: voiceBiometrics,
       conversation_context: {
         empathy_level: voiceProfile.empathy_level,
-        medical_terminology: voiceProfile.medical_expertise !== 'basic'
-      }
+        medical_terminology: voiceProfile.medical_expertise !== 'basic',
+      },
+      risk_data: {
+        // Optionally populate with recent risks if available from app state in future
+      },
     };
 
     try {
-      const response = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/voice/advanced-process`, {
+      const response = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/voice/process-command`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          transcript,
-          confidence,
-          context
+          text: transcript,
+          context,
         })
       });
 
       const result = await response.json();
-      speakWithPersonality(result.response, result.emotion_tone);
+      // Map backend priority to an emotion tone for TTS styling
+      const tone = result?.priority === 'urgent' ? 'urgent' : result?.priority === 'high' ? 'encouraging' : 'calming';
+      speakWithPersonality(result?.response_text || 'I could not process that request yet.', tone);
     } catch (error) {
       console.error('Advanced voice processing error:', error);
     }
