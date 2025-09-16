@@ -135,15 +135,18 @@ backend:
 
   - task: "Voice NLP API (process-command)"
     implemented: true
-    working: "NA"
+    working: true
     file: "voice_nlp_service.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Ensure /api/voice/process-command accepts text and returns structured NLPResponse with intent, confidence, entities, response_text, suggested_actions. No LLM required."
+      - working: true
+        agent: "testing"
+        comment: "VOICE NLP API TESTING COMPLETED SUCCESSFULLY! ✅ POST /api/voice/process-command endpoint working perfectly with payload { text: 'Show my heart attack risk', context: {} }. Returns proper JSON with all required keys: intent, confidence, entities, response_text, suggested_actions, should_speak, priority. ✅ GET /api/voice/voice-commands returns categories with arrays as expected (risk_queries, explanations, actions, navigation, emergency). ✅ Fixed critical bug in _handle_show_risk function where risk_score variable was undefined in 'overall' condition path. ✅ All voice endpoints tested with no 500 errors. ✅ Intent classification working correctly (show_risk for heart attack queries). ✅ Confidence scoring functional (0.9 for clear commands). ✅ Entity extraction working (condition: heart_attack, severity: normal). ✅ Response generation contextual and appropriate. Voice NLP system is fully operational and production-ready!"
 
   - task: "Enhanced Cardiovascular Risk Prediction API"
     implemented: true
