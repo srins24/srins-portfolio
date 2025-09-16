@@ -785,12 +785,12 @@ class BackendTester:
             return False
     
     def run_all_tests(self):
-        """Run all backend tests including advanced cardiovascular risk features"""
-        print(f"🚀 Starting Enhanced Cardiovascular Risk Prediction Backend Tests")
+        """Run all backend tests including advanced cardiovascular risk features and voice NLP"""
+        print(f"🚀 Starting Enhanced Cardiovascular Risk Prediction Backend Tests with Voice NLP")
         print(f"Testing URL: {BACKEND_URL}")
         print("=" * 80)
         
-        # Test in logical order - basic tests first, then advanced features
+        # Test in logical order - basic tests first, then advanced features, then voice NLP
         tests = [
             self.test_health_check,
             self.test_model_performance,
@@ -804,7 +804,11 @@ class BackendTester:
             self.test_realtime_prediction_endpoint,
             self.test_lifestyle_impact_analysis_endpoint,
             self.test_prediction_error_handling,
-            self.test_patient_history
+            self.test_patient_history,
+            # Voice NLP tests
+            self.test_voice_process_command,
+            self.test_voice_commands_list,
+            self.test_voice_nlp_sanity_check
         ]
         
         passed = 0
