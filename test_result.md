@@ -202,6 +202,19 @@ frontend:
         agent: "testing"
         comment: "History page working perfectly. Displays assessment summary statistics (total assessments, high risk count), shows recent assessments with risk levels, probabilities, model info, and patient IDs. Individual history items are clickable and navigate to results page correctly. Pull-to-refresh functionality working. Back navigation functional. Mobile-responsive with proper card layouts. API integration working - fetches and displays historical data correctly."
 
+
+  - task: "Advanced Voice Features Screen"
+    implemented: true
+    working: "NA"
+    file: "advanced-voice-features.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Implemented advanced voice features page with English (US/UK) accents, 8 AI personalities, TTS on native (expo-speech) and web (SpeechSynthesis), simulated voice biometrics, smart alerts, emergency test, multi-user mode, and navigation card from Home. Uses backend /api/voice/process-command."
+
 metadata:
   created_by: "main_agent"
   version: "1.0"
