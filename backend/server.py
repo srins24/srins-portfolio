@@ -10,6 +10,7 @@ from typing import List, Dict, Any, Optional
 import uuid
 from datetime import datetime
 from ml_pipeline import CardiovascularRiskPredictor
+from voice_nlp_service import voice_router
 import joblib
 
 ROOT_DIR = Path(__file__).parent
