@@ -722,6 +722,7 @@ export default function AdvancedVoiceFeatures() {
           </View>
         </View>
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
