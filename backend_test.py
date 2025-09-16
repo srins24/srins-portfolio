@@ -11,7 +11,7 @@ from datetime import datetime
 import time
 
 # Get backend URL from frontend .env
-BACKEND_URL = "https://cardiorisk-predict.preview.emergentagent.com/api"
+BACKEND_URL = "https://heartvoice-1.preview.emergentagent.com/api"
 
 # Test data for prediction endpoint - comprehensive patient data for advanced testing
 SAMPLE_PATIENT_DATA = {
