@@ -223,6 +223,9 @@ frontend:
     stuck_count: 0
     priority: "high"
     needs_retesting: true
+  - agent: "main"
+    message: "Please test the Voice NLP endpoint: POST /api/voice/process-command with payload { text: 'Show my heart attack risk', context: {} }. Verify structured NLPResponse fields (intent, confidence, entities, response_text, suggested_actions, should_speak, priority). Also sanity-check GET /api/voice/voice-commands returns command categories. No authentication required. Frontend changes are pending manual verification; do not run frontend tests yet."
+
     status_history:
       - working: "NA"
         agent: "main"
