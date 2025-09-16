@@ -467,7 +467,7 @@ export default function AdvancedVoiceFeatures() {
                 onValueChange={(value) => setVoiceProfile(prev => ({ ...prev, pitch: value }))}
                 minimumTrackTintColor="#2196F3"
                 maximumTrackTintColor="#666666"
-                thumbStyle={{ backgroundColor: '#2196F3' }}
+                thumbTintColor="#2196F3"
               />
             </View>
 
