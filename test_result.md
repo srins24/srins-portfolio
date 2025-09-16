@@ -132,6 +132,19 @@ backend:
         agent: "testing"
         comment: "All backend API endpoints tested successfully. Fixed MongoDB ObjectId serialization issue in patient-history and recent-predictions endpoints. All 8 tests passed: health check, model performance, feature importance, health stats, recent predictions, prediction endpoint, error handling, and patient history. Database integration working correctly with predictions being saved and retrieved properly."
 
+
+  - task: "Voice NLP API (process-command)"
+    implemented: true
+    working: "NA"
+    file: "voice_nlp_service.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Ensure /api/voice/process-command accepts text and returns structured NLPResponse with intent, confidence, entities, response_text, suggested_actions. No LLM required."
+
   - task: "Enhanced Cardiovascular Risk Prediction API"
     implemented: true
     working: true
