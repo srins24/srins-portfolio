@@ -268,55 +268,52 @@ export default function AdvancedVoiceFeatures() {
   };
 
   const speakWithPersonality = (text: string, emotionTone: string = 'neutral') => {
-    if (synthRef.current) {
-      const utterance = new SpeechSynthesisUtterance(text);
-      
-      // Set accent/language
-      utterance.lang = voiceProfile.accent;
-      
-      // Apply personality-based voice parameters
-      utterance.rate = voiceProfile.speed;
-      utterance.pitch = voiceProfile.pitch;
-      utterance.volume = 1.0;
-      
-      // Adjust for personality type
+    // Platform-aware TTS: web uses SpeechSynthesis; native uses expo-speech
+    const tune = (base: { rate: number; pitch: number }) => {
+      let { rate, pitch } = base;
       switch (voiceProfile.personality) {
         case 'professional':
-          utterance.rate = 0.9;
-          utterance.pitch = 1.0;
-          break;
+          rate = 0.9; pitch = 1.0; break;
         case 'friendly':
-          utterance.rate = 1.1;
-          utterance.pitch = 1.2;
-          break;
+          rate = 1.1; pitch = 1.2; break;
         case 'therapeutic':
-          utterance.rate = 0.8;
-          utterance.pitch = 0.9;
-          break;
+          rate = 0.8; pitch = 0.9; break;
         case 'motivational':
-          utterance.rate = 1.2;
-          utterance.pitch = 1.3;
-          break;
+          rate = 1.2; pitch = 1.3; break;
       }
-      
-      // Adjust for emotion tone
       switch (emotionTone) {
         case 'urgent':
-          utterance.rate = 1.3;
-          utterance.pitch = 1.4;
-          break;
+          rate = 1.3; pitch = 1.4; break;
         case 'calming':
-          utterance.rate = 0.7;
-          utterance.pitch = 0.8;
-          break;
+          rate = 0.7; pitch = 0.8; break;
         case 'encouraging':
-          utterance.rate = 1.1;
-          utterance.pitch = 1.3;
-          break;
+          rate = 1.1; pitch = 1.3; break;
       }
-      
+      return { rate, pitch };
+    };
+
+    if (Platform.OS === 'web' && synthRef.current) {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = voiceProfile.accent;
+      const tuned = tune({ rate: voiceProfile.speed, pitch: voiceProfile.pitch });
+      utterance.rate = tuned.rate;
+      utterance.pitch = tuned.pitch;
+      utterance.volume = 1.0;
       synthRef.current.speak(utterance);
+      return;
     }
+
+    // Native fallback using expo-speech
+    const tuned = tune({ rate: voiceProfile.speed, pitch: voiceProfile.pitch });
+    Speech.speak(text, {
+      language: voiceProfile.accent,
+      pitch: tuned.pitch,
+      rate: tuned.rate,
+      onStart: () => {},
+      onDone: () => {},
+      onStopped: () => {},
+      onError: () => {},
+    });
   };
 
   const triggerSmartAlert = (alertType: string) => {
