@@ -624,6 +624,165 @@ class BackendTester:
         except Exception as e:
             self.log_result("Lifestyle Impact in Prediction", False, f"Error: {str(e)}")
             return False
+
+    def test_voice_process_command(self):
+        """Test voice NLP process-command endpoint"""
+        try:
+            # Test payload as specified in the review request
+            test_payload = {
+                "text": "Show my heart attack risk",
+                "context": {}
+            }
+            
+            response = requests.post(
+                f"{BACKEND_URL}/voice/process-command",
+                json=test_payload,
+                headers={"Content-Type": "application/json"},
+                timeout=10
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                
+                # Check for required fields as specified in review request
+                required_fields = ["intent", "confidence", "entities", "response_text", "suggested_actions", "should_speak", "priority"]
+                missing_fields = [field for field in required_fields if field not in data]
+                
+                if missing_fields:
+                    self.log_result("Voice Process Command", False, f"Missing required fields: {missing_fields}")
+                    return False
+                
+                # Validate data types and values
+                if not isinstance(data["confidence"], (int, float)) or not (0 <= data["confidence"] <= 1):
+                    self.log_result("Voice Process Command", False, f"Invalid confidence value: {data['confidence']}")
+                    return False
+                
+                if not isinstance(data["entities"], dict):
+                    self.log_result("Voice Process Command", False, f"entities should be a dict, got: {type(data['entities'])}")
+                    return False
+                
+                if not isinstance(data["response_text"], str) or len(data["response_text"]) == 0:
+                    self.log_result("Voice Process Command", False, f"Invalid response_text: {data['response_text']}")
+                    return False
+                
+                if not isinstance(data["suggested_actions"], list):
+                    self.log_result("Voice Process Command", False, f"suggested_actions should be a list, got: {type(data['suggested_actions'])}")
+                    return False
+                
+                if not isinstance(data["should_speak"], bool):
+                    self.log_result("Voice Process Command", False, f"should_speak should be boolean, got: {type(data['should_speak'])}")
+                    return False
+                
+                if data["priority"] not in ["normal", "high", "urgent"]:
+                    self.log_result("Voice Process Command", False, f"Invalid priority value: {data['priority']}")
+                    return False
+                
+                # Check if intent is correctly classified for "Show my heart attack risk"
+                if data["intent"] != "show_risk":
+                    self.log_result("Voice Process Command", False, f"Expected intent 'show_risk', got: {data['intent']}")
+                    return False
+                
+                self.log_result("Voice Process Command", True, 
+                              f"Voice command processed successfully. Intent: {data['intent']}, Confidence: {data['confidence']:.2f}, Priority: {data['priority']}")
+                return True
+                
+            else:
+                self.log_result("Voice Process Command", False, f"HTTP {response.status_code}: {response.text}")
+                return False
+                
+        except Exception as e:
+            self.log_result("Voice Process Command", False, f"Error: {str(e)}")
+            return False
+
+    def test_voice_commands_list(self):
+        """Test voice commands list endpoint"""
+        try:
+            response = requests.get(f"{BACKEND_URL}/voice/voice-commands", timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                
+                if not isinstance(data, dict):
+                    self.log_result("Voice Commands List", False, f"Expected dict, got: {type(data)}")
+                    return False
+                
+                # Check for expected categories
+                expected_categories = ["risk_queries", "explanations", "actions", "navigation", "emergency"]
+                missing_categories = [cat for cat in expected_categories if cat not in data]
+                
+                if missing_categories:
+                    self.log_result("Voice Commands List", False, f"Missing categories: {missing_categories}")
+                    return False
+                
+                # Verify each category contains arrays
+                for category, commands in data.items():
+                    if not isinstance(commands, list):
+                        self.log_result("Voice Commands List", False, f"Category '{category}' should contain an array, got: {type(commands)}")
+                        return False
+                    
+                    if len(commands) == 0:
+                        self.log_result("Voice Commands List", False, f"Category '{category}' is empty")
+                        return False
+                    
+                    # Verify commands are strings
+                    for command in commands:
+                        if not isinstance(command, str):
+                            self.log_result("Voice Commands List", False, f"Command in '{category}' should be string, got: {type(command)}")
+                            return False
+                
+                total_commands = sum(len(commands) for commands in data.values())
+                self.log_result("Voice Commands List", True, 
+                              f"Voice commands retrieved successfully. Categories: {len(data)}, Total commands: {total_commands}")
+                return True
+                
+            else:
+                self.log_result("Voice Commands List", False, f"HTTP {response.status_code}: {response.text}")
+                return False
+                
+        except Exception as e:
+            self.log_result("Voice Commands List", False, f"Error: {str(e)}")
+            return False
+
+    def test_voice_nlp_sanity_check(self):
+        """Sanity check to ensure no 500 errors across voice endpoints"""
+        try:
+            endpoints_to_test = [
+                ("/voice/voice-commands", "GET", None),
+                ("/voice/process-command", "POST", {"text": "Hello", "context": {}}),
+                ("/voice/process-command", "POST", {"text": "What is my risk?", "context": {}}),
+                ("/voice/process-command", "POST", {"text": "Start assessment", "context": {}})
+            ]
+            
+            failed_endpoints = []
+            
+            for endpoint, method, payload in endpoints_to_test:
+                try:
+                    if method == "GET":
+                        response = requests.get(f"{BACKEND_URL}{endpoint}", timeout=10)
+                    else:
+                        response = requests.post(
+                            f"{BACKEND_URL}{endpoint}",
+                            json=payload,
+                            headers={"Content-Type": "application/json"},
+                            timeout=10
+                        )
+                    
+                    if response.status_code == 500:
+                        failed_endpoints.append(f"{method} {endpoint}: {response.text[:100]}")
+                        
+                except Exception as e:
+                    failed_endpoints.append(f"{method} {endpoint}: Connection error - {str(e)}")
+            
+            if failed_endpoints:
+                self.log_result("Voice NLP Sanity Check", False, f"500 errors found: {failed_endpoints}")
+                return False
+            else:
+                self.log_result("Voice NLP Sanity Check", True, f"No 500 errors found across {len(endpoints_to_test)} voice endpoints")
+                return True
+                
+        except Exception as e:
+            self.log_result("Voice NLP Sanity Check", False, f"Error: {str(e)}")
+            return False
     
     def run_all_tests(self):
         """Run all backend tests including advanced cardiovascular risk features"""
