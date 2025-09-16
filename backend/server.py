@@ -639,8 +639,9 @@ def _get_priority_recommendations(scenarios):
     
     return sorted(priorities, key=lambda x: x['impact_score'], reverse=True)
 
-# Include the router in the main app
+# Include the routers in the main app
 app.include_router(api_router)
+app.include_router(voice_router)
 
 app.add_middleware(
     CORSMiddleware,
