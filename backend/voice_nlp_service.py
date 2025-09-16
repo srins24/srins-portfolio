@@ -381,9 +381,14 @@ async def transcribe_audio(
             f.write(content)
         
         if use_whisper:
-            # Use Whisper for high-accuracy transcription
-            model = whisper.load_model("base")
-            result = model.transcribe(temp_path, language=language)
+            # Use Whisper for high-accuracy transcription (requires whisper installation)
+            try:
+                import whisper
+                model = whisper.load_model("base")
+                result = model.transcribe(temp_path, language=language)
+            except ImportError:
+                # Fallback if whisper is not installed
+                result = {"text": "Whisper not available - install with 'pip install openai-whisper'", "language": language}
             
             transcription = {
                 "text": result["text"],
