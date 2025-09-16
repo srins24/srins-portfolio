@@ -388,6 +388,7 @@ export default function AdvancedVoiceFeatures() {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="light" />
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
       
       {/* Header */}
       <View style={styles.header}>
