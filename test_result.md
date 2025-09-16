@@ -215,7 +215,7 @@ test_plan:
   - "Voice processing uses /api/voice/process-command"
 
   stuck_tasks: []
-  test_all: true
+  test_all: false
   test_priority: "completed"
 
 agent_communication:
