@@ -9,6 +9,9 @@ import {
   Alert,
   Switch,
   Platform,
+  KeyboardAvoidingView,
+  Keyboard,
+  TextInput,
 } from 'react-native';
 import Slider from '@react-native-community/slider';
 import { StatusBar } from 'expo-status-bar';
