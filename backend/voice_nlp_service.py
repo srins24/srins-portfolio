@@ -211,8 +211,8 @@ class HealthCoachingService:
             risk_score = risk_data.get("stroke", 0)
             response_text = f"Your stroke risk is {risk_score}%. Key factors include your blood pressure and overall cardiovascular health. "
         else:
-            overall_risk = risk_data.get("overall_cardiovascular", 0)
-            response_text = f"Your overall cardiovascular risk is {overall_risk}%. This combines multiple factors including heart attack, stroke, and heart failure risks. "
+            risk_score = risk_data.get("overall_cardiovascular", 0)
+            response_text = f"Your overall cardiovascular risk is {risk_score}%. This combines multiple factors including heart attack, stroke, and heart failure risks. "
 
         # Add personalized recommendations
         if risk_score > 70:
