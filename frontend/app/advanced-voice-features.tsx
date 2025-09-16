@@ -482,7 +482,7 @@ export default function AdvancedVoiceFeatures() {
                 onValueChange={(value) => setVoiceProfile(prev => ({ ...prev, empathy_level: value }))}
                 minimumTrackTintColor="#4CAF50"
                 maximumTrackTintColor="#666666"
-                thumbStyle={{ backgroundColor: '#4CAF50' }}
+                thumbTintColor="#4CAF50"
               />
             </View>
           </View>
