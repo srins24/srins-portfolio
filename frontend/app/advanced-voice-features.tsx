@@ -8,9 +8,13 @@ import {
   ScrollView,
   Alert,
   Switch,
+  Platform,
 } from 'react-native';
+import Slider from '@react-native-community/slider';
 import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
+import * as Haptics from 'expo-haptics';
+import * as Speech from 'expo-speech';
 
 const EXPO_PUBLIC_BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
