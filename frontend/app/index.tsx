@@ -152,6 +152,21 @@ export default function Index() {
               <Text style={styles.buttonText}>Talk to AI</Text>
             </View>
           </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[styles.actionCard, styles.premiumCard]} 
+            onPress={() => router.push('/advanced-voice-features')}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.cardIcon}>🌟</Text>
+            <Text style={styles.cardTitle}>Advanced Voice AI</Text>
+            <Text style={styles.cardDescription}>
+              15+ languages, voice biometrics, multi-user, emergency detection
+            </Text>
+            <View style={styles.cardButton}>
+              <Text style={styles.buttonText}>Explore Features</Text>
+            </View>
+          </TouchableOpacity>
         </View>
 
         {/* Footer */}
