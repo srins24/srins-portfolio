@@ -209,7 +209,11 @@ metadata:
   run_ui: false
 
 test_plan:
-  current_focus: []
+  current_focus:
+  - "Advanced Voice Features screen"
+  - "Navigation from Home to Advanced Voice"
+  - "Voice processing uses /api/voice/process-command"
+
   stuck_tasks: []
   test_all: true
   test_priority: "completed"
